@@ -4,7 +4,7 @@
   "private": true,
   "main": ".build/src/index.js",
   "types": ".build/src/index.d.ts",
-  "files": [".build/src", ".build/contracts", "README.md", "ARCHITECTURE.md", "FEATURES.md", "VALIDATION.md", "PROGRESS.md"],
+  "files": [".build/src", ".build/contracts", "README.md", "ARCHITECTURE.md", "FEATURES.md", "VALIDATION.md", "PROGRESS.md", "PLAYBACK_PROTOCOL_RESEARCH.md", "PLAYBACK_SYNC_PLAN.md"],
   "exports": {
     ".": { "types": "./.build/src/index.d.ts", "default": "./.build/src/index.js" },
     "./react": { "types": "./.build/src/react/index.d.ts", "default": "./.build/src/react/index.js" }

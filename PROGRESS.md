@@ -51,6 +51,31 @@ Validation:
   earlier HTTP 404. Guest participation, live pushed observation, device runtime,
   and independent mobile authentication remain unverified.
 
+## Chapter 2 — playback protocol research and proposed plan
+
+On 2026-10-22 the user authorized investigation of playing together and an
+additional agent. Applied the project skill and REA's bundled investigation
+workflow. One agent independently reviewed the player bridge and pinned librespot
+reference while the main agent inspected the installed client and ran probes.
+
+Observed native playback/queue schemas, independent Dealer membership pushes,
+and an independent inactive observer snapshot (HTTP 200, cleanup 204). The
+snapshot was stale and differed from the installed client's paused/buffering
+track. No remote listening, fresh cross-account playback stream or audible
+synchronization is established. The temporary Jam was removed and the observers
+did not change active playback. No production code or capability flag changed.
+
+REA parsed four selected playback source excerpts without parse failures, with
+unknown/partial semantic coverage. Native layout provider was unavailable; no
+native decompilation claimed. Embedded protobuf descriptors were decoded by a
+separate bounded extraction. Research scripts/probes are not production tests;
+no library/device test or performance result is claimed for this docs chapter.
+
+Read PLAYBACK_PROTOCOL_RESEARCH.md for evidence and limits, and
+PLAYBACK_SYNC_PLAN.md for the proposed six-chapter implementation. The next gate
+is controlled two-account admission and fresh state delivery. The plan awaits
+user approval before implementation.
+
 ## Resume work
 
 1. Obtain a second controlled account for guest validation. An asynchronous

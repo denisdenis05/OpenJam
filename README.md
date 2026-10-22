@@ -29,6 +29,12 @@ experiment returned HTTP 404. A public Spotify catalog probe returned HTTP 429;
 catalog behavior has deterministic adapter tests but no successful live catalog
 validation in this chapter.
 
+Playing together is planned separately. Read the
+[playback protocol findings](PLAYBACK_PROTOCOL_RESEARCH.md) and
+[proposed synchronization plan](PLAYBACK_SYNC_PLAN.md). Independent membership
+pushes and a stale Connect snapshot were observed; remote playback synchronization
+remains unverified and is not implemented.
+
 ## Composition
 
 Construct `SpotifyJamRuntime` with the account identifier, credential provider,
