@@ -4,6 +4,41 @@ Updated 2026-10-22. The user approved the library plan and required the project'
 streaming-service-quality skill for implementation. This repository is separate
 from the player, mobile, and server repositories. No player engine was changed.
 
+## Chapter 3 — mobile session testing support
+
+After the protocol investigation, the user authorized mobile session controls and
+an installable personal-test APK. The mobile repository now owns its Profile
+entry, temporary-token connection, authenticated private profile lookup, safe
+initial passive membership read, create/share/join/leave/end controls and public
+short-invitation resolution. See its SPOTIFY_JAM_APK.md for use and build results.
+This is session testing support; the playback bridge remains unimplemented.
+
+Added opt-in `experimentalMembership` runtime composition, `JamJoinMode`, guarded
+`joinSession` and `leaveSession`, and source-reconstructed HTTP POST adapters.
+Default verified capabilities retain join/leave false. Experimental availability
+does not claim cross-account admission or remote audio synchronization.
+
+Join refuses an existing session; guest leave refuses owned sessions. Commands
+reuse bounded pending/receipt storage, account cancellation, serialized execution,
+duplicate/conflicting request handling and uncertain-outcome refresh fences.
+Tests cover the membership-specific functionality in `tests/jam-membership.test.mjs`.
+No live guest or playback probes were performed for this implementation.
+
+Membership validation: `npm run check`, `npm test`, and `npm run build` passed.
+The library now has 162 passing deterministic cases across ten test files,
+including 30 dedicated membership cases and 16 account-current cases.
+`git diff --check` passed. These are
+host checks; guest admission and physical-device operation remain unverified.
+
+Added `JamProtocol.readCurrentAccount` and `sessions.refreshCurrentSession` after
+a scoped live probe verified `GET /social-connect/v2/sessions/current`: HTTP 200
+direct session JSON during a temporary owned Jam, HTTP 404 before/after absence,
+and successful deletion with no native session left. Sanitized local evidence is
+`spotify-jam-research/evidence/mobile-current-session-probe.json`. No device API
+or device identifier is needed for this passive refresh. Failure preserves the
+unknown-outcome fence; successful absent/present reads reconcile it. Guest state
+and playback synchronization remain unverified.
+
 ## Chapter 1 — library, catalog matching, and verified session lifecycle
 
 Implemented the private `streaming-service-spotify-jam` package, strict compiler
@@ -80,10 +115,13 @@ user approval before implementation.
 
 1. Obtain a second controlled account for guest validation. An asynchronous
    question was sent to the user; no second account was supplied during this
-   implementation. Do not claim guest join/leave or invitation resolution works.
+   implementation. Do not claim guest join/leave, invitation-info lookup or
+   synchronized playback has been verified. Public short-link resolution was
+   verified separately using controlled own-session share pages.
 2. Establish mobile credential acquisition/renewal independently of desktop
-   debugging. The provider contract and coordination are implemented; no login
-   flow, cookie extraction, credential relay, or companion dependency was added.
+   debugging. The mobile test connection accepts a token into memory; browser
+   login/renewal, cookie extraction, credential relay and a companion dependency
+   were not added.
 3. Resolve the info lookup failure and inspect the real session subscription
    connection/envelopes. Keep unsupported capability flags false until validated.
 4. Validate real catalog access after rate limits permit and run cross-catalog

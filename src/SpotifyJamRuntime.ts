@@ -19,6 +19,7 @@ export interface SpotifyJamDependencies {
   readonly clock: Clock;
   readonly matchingPolicy?: MatchingPolicy;
   readonly onSubscriberFailure?: () => void;
+  readonly experimentalMembership?: boolean;
 }
 
 export class SpotifyJamRuntime {
@@ -32,8 +33,9 @@ export class SpotifyJamRuntime {
     const requests = new SpotifyRequestClient(dependencies.requests, this.credentials);
     this.translator = new TrackTranslator(dependencies.recordings, new SpotifyWebCatalog(requests),
       new CandidateRanker(dependencies.matchingPolicy), dependencies.associations);
-    this.sessions = new JamSessionClient(dependencies.onSubscriberFailure);
-    this.sessions.attachAccount(dependencies.accountIdentifier, new SpotifyHttpJamProtocol(requests, dependencies.endpoints));
+    this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);
+    this.sessions.attachAccount(dependencies.accountIdentifier,
+      new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership));
   }
 
   async translateToSpotify(recordingIdentifier: string, market: string, cancellation: AbortSignal): Promise<MatchResult<SpotifySong>> {

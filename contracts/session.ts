@@ -22,10 +22,18 @@ export interface JamSessionResponse {
   readonly invitation: JamInvitation | null;
 }
 
+export enum JamJoinMode {
+  Control = 'control',
+  Remote = 'remote',
+}
+
 export interface JamProtocol {
   createOrActivate(cancellation: AbortSignal): Promise<JamSessionResponse>;
   end(identifier: string, cancellation: AbortSignal): Promise<void>;
   readCurrent?(deviceIdentifier: string, cancellation: AbortSignal): Promise<JamSessionResponse | null>;
+  readCurrentAccount?(cancellation: AbortSignal): Promise<JamSessionResponse | null>;
+  join?(joinToken: string, mode: JamJoinMode, localDeviceIdentifier: string | null, cancellation: AbortSignal): Promise<JamSessionResponse>;
+  leave?(identifier: string, cancellation: AbortSignal): Promise<void>;
 }
 
 export enum JamConnectionStatus {

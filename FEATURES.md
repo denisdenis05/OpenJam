@@ -14,9 +14,12 @@
 | Credential origin checks, read-only renewal/retry, mutation uncertainty and rate limits | `tests/network.test.mjs` |
 | Pacing, timer cancellation, deadlines, malformed JSON and fetch redirect/cookie policy | `tests/network.test.mjs` |
 | Jam creation/deletion/status protocol, absent session and malformed success | `tests/jam-session.test.mjs` |
+| Passive account-current JSON/404 decoding, endpoint trust, cancellation, malformed responses, refresh capability, private copied snapshots, deduplication, stale accounts and uncertain-outcome reconciliation | `tests/jam-current-account.test.mjs` |
 | Commands, request deduplication/conflicts, host permission, account switch, detach, backpressure and subscriber ownership | `tests/jam-session.test.mjs` |
 | Unknown outcomes, queued-command fencing and passive reconciliation | `tests/jam-session.test.mjs` |
 | Immutable private snapshots, explicit invitation access and capability truthfulness | `tests/jam-session.test.mjs` |
+| Experimental membership defaults/capabilities/runtime opt in, join query modes/device encoding, guest leave endpoint, validation, malformed success and cancellation | `tests/jam-membership.test.mjs` |
+| Experimental guest ownership rules, forbidden guest creation at submission/execution, owner reactivation, response copies, replay/conflicts, bounded pending work, account changes, detach and join/leave uncertain outcomes | `tests/jam-membership.test.mjs` |
 | Account-scoped runtime composition, translation, confirmation and disposal | `tests/runtime.test.mjs` |
 | Selector identity retention, selected changes and store method receiver | `tests/react-bindings.test.mjs` |
 | Server credit projection, fallback provenance, deduplication, invalid inputs, cancellation, SQL translation, routes and authorization | `StreamingServiceServer.CoverTests/SpotifyRecordingCatalogTests.cs` |
@@ -30,5 +33,7 @@ replace these tests.
 
 Guest join/leave, invitation resolution, live pushed events, queue controls,
 independent mobile authentication and physical-device operation remain unverified.
-Their absence is not covered up by mock endpoint success or enabled capability
-flags. A MusicBrainz result also does not imply local audio availability.
+Mock endpoint success does not prove live guest participation. Join/leave
+capabilities can be explicitly enabled as experimental operations; all other
+unsupported capabilities remain false. A MusicBrainz result also does not imply
+local audio availability.

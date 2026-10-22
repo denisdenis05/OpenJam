@@ -8,8 +8,8 @@ bindings are exported from `streaming-service-spotify-jam/react`.
 
 ## Implemented behavior
 
-- Create or activate a Jam, end an owned Jam, and passively refresh the session
-  associated with a caller-selected Spotify device.
+- Create or activate a Jam, end an owned Jam, and passively refresh the current
+  account session or the session associated with a caller-selected Spotify device.
 - Account-scoped session snapshots, explicit invitation access, command ordering,
   duplicate request handling, bounded pending work, and uncertain-outcome fences.
 - Injectable Spotify credentials with shared loading/renewal and account checks.
@@ -22,9 +22,14 @@ bindings are exported from `streaming-service-spotify-jam/react`.
   Spotify device-selection provider is supplied.
 
 Production Jam creation/deletion and passive device-status requests were tested
-against the installed Spotify account. Guest joining, invitation-info lookup,
+against the installed Spotify account. A subsequent live account-current probe
+verified passive JSON reads while a temporary owned Jam was active and HTTP 404
+when absent, with successful cleanup. Guest joining, invitation-info lookup,
 push updates, queue manipulation, and standalone mobile login are not established
-working features. Their capability flags are false. The earlier invitation-info
+working features. Their capability flags are false by default. Experimental
+membership can be explicitly enabled for personal testing as described below;
+enabled join/leave flags indicate available experimental operations, not verified
+remote listening. The earlier invitation-info
 experiment returned HTTP 404. A public Spotify catalog probe returned HTTP 429;
 catalog behavior has deterministic adapter tests but no successful live catalog
 validation in this chapter.
@@ -34,6 +39,26 @@ Playing together is planned separately. Read the
 [proposed synchronization plan](PLAYBACK_SYNC_PLAN.md). Independent membership
 pushes and a stale Connect snapshot were observed; remote playback synchronization
 remains unverified and is not implemented.
+
+## Experimental membership
+
+Set the runtime dependency `experimentalMembership: true` to enable reconstructed
+guest join/leave requests. This defaults to false. Call
+`sessions.joinSession(joinToken, JamJoinMode.Control, localDeviceIdentifier, requestIdentifier)`
+or select `JamJoinMode.Remote` for the experimental `listen_and_control` request.
+Pass `null` when no actual Spotify local device identifier is available; do not
+invent an identifier. Supply the invitation token, not an entire invitation URL.
+
+Joining requires no current session. Leave a guest session with
+`sessions.leaveSession(requestIdentifier)` before joining another; end an owned
+session with `endSession` instead. Creating a Jam while currently a guest is
+forbidden; an owner may reactivate their own Jam. Join/leave use the existing bounded ordering,
+request replay, account cancellation and uncertain-outcome reconciliation rules.
+A completed duplicate request returns its original result even after state changes.
+
+These HTTP paths were recovered from source and have deterministic tests.
+Cross-account live guest admission remains unverified. Remote mode does not
+implement queue updates, Spotify audio playback or synchronization with our player.
 
 ## Composition
 
@@ -57,6 +82,7 @@ const recordingMatch = await runtime.translateToRecording(spotifyIdentifier, mar
 const creation = await runtime.sessions.createOrActivateSession(createRequestIdentifier);
 const snapshot = runtime.sessions.getSnapshot();
 const invitation = runtime.sessions.getInvitation();
+const currentRefresh = await runtime.sessions.refreshCurrentSession(currentRefreshRequestIdentifier);
 const refresh = await runtime.sessions.refreshSession(spotifyDeviceIdentifier, refreshRequestIdentifier);
 ```
 
@@ -66,6 +92,12 @@ concrete boundary implementations. `SpotifyEndpointResolver` must supply the
 actual HTTPS service origin; the research account's regional host is not a
 production default. `SpotifyCredentialProvider` must obtain and renew the
 current account's credentials. Desktop debugging is not part of this package.
+
+`refreshCurrentSession` uses the verified passive
+`GET /social-connect/v2/sessions/current` endpoint and requires no device lookup.
+HTTP 404 means no current session; malformed successful JSON remains an error.
+It can reconcile an uncertain mutation through the same account guards as device
+refresh. The live check covered an owned session, not cross-account guest state.
 
 ## Catalog records
 

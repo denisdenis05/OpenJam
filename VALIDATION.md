@@ -1,5 +1,22 @@
 # Validation
 
+Experimental membership follow-up: `npm run check`, `npm test`, and
+`npm run build` passed with 162 deterministic cases across ten files, including
+30 membership cases and 16 account-current cases. `git diff --check` passed.
+These tests use injected transports. Separately, a scoped account-current live
+probe verified passive HTTP 200 JSON during an owned Jam and HTTP 404 when absent;
+temporary creation/deletion succeeded and no native session remained. No live
+guest admission, queue synchronization or audio playback result is claimed.
+Earlier counts below describe the initial library chapter.
+
+The mobile follow-up passed 65 Node feature/integration cases, 11 rendered-screen
+cases, full app TypeScript, seven workspace player checks and 319 player-mobile
+cases. Its real controller/gateway/library performed an owned Jam lifecycle on a
+Node host. Private profile verification and two public short-invitation samples
+passed. Public profile/device APIs returned 429. Android packaging is documented
+in the mobile repository's SPOTIFY_JAM_APK.md; no physical-device execution or
+guest admission result is claimed.
+
 Executed on 2026-10-21. Host tools: Node.js 26.11.1, TypeScript 5.0.4,
 .NET SDK 10.0.112 targeting the existing net9.0 server, and disposable
 PostgreSQL 18.6. Dependency resolution is recorded in each owning lockfile.

@@ -1,5 +1,5 @@
 import { IntegrationFailureCode } from '../../contracts/network';
-import { JamConnectionStatus } from '../../contracts/session';
+import { JamConnectionStatus, JamJoinMode } from '../../contracts/session';
 import type { ExternalStore, JamCapabilities, JamCommandResult, JamInvitation, JamProtocol, JamSnapshot } from '../../contracts/session';
 import { failureCode, IntegrationFailure } from '../network/IntegrationFailure';
 import { withCancellation } from '../network/Cancellation';
@@ -8,7 +8,8 @@ export const VerifiedJamCapabilities: JamCapabilities = Object.freeze({
   createOrActivate: true, end: true, refresh: false, resolveInvitation: false, join: false, leave: false, observe: false, queue: false,
 });
 const CommandPolicy = Object.freeze({ maximumPendingCommands: 16, emptyCount: 0, commandCount: 1,
-  completedRequestLimit: 64, firstPosition: 0, createOperation: 'create', endOperation: 'end', refreshOperation: 'refresh' });
+  completedRequestLimit: 64, firstPosition: 0, createOperation: 'create', endOperation: 'end', refreshOperation: 'refresh',
+  joinOperation: 'join', leaveOperation: 'leave', refreshCurrentOperation: 'refresh-current' });
 
 interface SessionOwnership {
   readonly accountIdentifier: string;
@@ -21,14 +22,18 @@ interface SessionOwnership {
 
 export class JamSessionClient implements ExternalStore<JamSnapshot> {
   get capabilities(): JamCapabilities {
-    return Object.freeze({ ...VerifiedJamCapabilities, refresh: this.ownership?.protocol.readCurrent !== undefined });
+    return Object.freeze({ ...VerifiedJamCapabilities, refresh: this.ownership?.protocol.readCurrent !== undefined
+      || this.ownership?.protocol.readCurrentAccount !== undefined,
+      join: this.experimentalMembership && this.ownership?.protocol.join !== undefined,
+      leave: this.experimentalMembership && this.ownership?.protocol.leave !== undefined });
   }
   private ownership: SessionOwnership | null = null;
   private invitation: JamInvitation | null = null;
   private snapshot: JamSnapshot = Object.freeze({ accountIdentifier: null, status: JamConnectionStatus.Detached, session: null, failure: null });
   private readonly listeners = new Set<() => void>();
 
-  constructor(private readonly onSubscriberFailure: () => void = () => undefined) {}
+  constructor(private readonly onSubscriberFailure: () => void = () => undefined,
+    private readonly experimentalMembership = false) {}
 
   getSnapshot = (): JamSnapshot => this.snapshot;
 
@@ -53,13 +58,17 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
   }
 
   createOrActivateSession(requestIdentifier: string): Promise<JamCommandResult> {
+    const permissionFailure = () => this.snapshot.session !== null && !this.snapshot.session.ownedByCurrentAccount
+      ? IntegrationFailureCode.Forbidden : null;
     return this.submit(requestIdentifier, CommandPolicy.createOperation, async ownership => {
+      const failure = permissionFailure();
+      if (failure !== null) throw new IntegrationFailure(failure);
       const response = await withCancellation(ownership.protocol.createOrActivate(ownership.cancellation.signal), ownership.cancellation.signal);
       if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
       this.invitation = response.invitation === null ? null : Object.freeze({ ...response.invitation });
       const session = Object.freeze({ ...response.session, participants: Object.freeze(response.session.participants.map(participant => Object.freeze({ ...participant }))) });
       this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session, failure: null });
-    });
+    }, false, permissionFailure);
   }
 
   endSession(requestIdentifier: string): Promise<JamCommandResult> {
@@ -69,6 +78,38 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       if (!session || session.identifier !== expectedSessionIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
       if (!session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
       await withCancellation(ownership.protocol.end(session.identifier, ownership.cancellation.signal), ownership.cancellation.signal);
+      if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      this.invitation = null;
+      this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session: null, failure: null });
+    });
+  }
+
+  joinSession(joinToken: string, mode: JamJoinMode, localDeviceIdentifier: string | null,
+    requestIdentifier: string): Promise<JamCommandResult> {
+    if (!joinToken.trim() || (mode !== JamJoinMode.Control && mode !== JamJoinMode.Remote)
+      || (localDeviceIdentifier !== null && !localDeviceIdentifier.trim())) return Promise.resolve(this.rejected(IntegrationFailureCode.InvalidInput));
+    const operation = JSON.stringify([CommandPolicy.joinOperation, joinToken, mode, localDeviceIdentifier]);
+    return this.submit(requestIdentifier, operation, async ownership => {
+      if (!this.experimentalMembership || !ownership.protocol.join) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      if (this.snapshot.session !== null) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      const response = await withCancellation(ownership.protocol.join(joinToken, mode, localDeviceIdentifier,
+        ownership.cancellation.signal), ownership.cancellation.signal);
+      if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      this.invitation = response.invitation === null ? null : Object.freeze({ ...response.invitation });
+      const session = Object.freeze({ ...response.session,
+        participants: Object.freeze(response.session.participants.map(participant => Object.freeze({ ...participant }))) });
+      this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session, failure: null });
+    });
+  }
+
+  leaveSession(requestIdentifier: string): Promise<JamCommandResult> {
+    const expectedSessionIdentifier = this.snapshot.session?.identifier;
+    return this.submit(requestIdentifier, CommandPolicy.leaveOperation, async ownership => {
+      if (!this.experimentalMembership || !ownership.protocol.leave) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      const session = this.snapshot.session;
+      if (!session || session.identifier !== expectedSessionIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      if (session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      await withCancellation(ownership.protocol.leave(session.identifier, ownership.cancellation.signal), ownership.cancellation.signal);
       if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
       this.invitation = null;
       this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session: null, failure: null });
@@ -94,13 +135,28 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
     }, true);
   }
 
-  private submit(requestIdentifier: string, operation: string, command: (ownership: SessionOwnership) => Promise<void>, readOnly = false): Promise<JamCommandResult> {
+  refreshCurrentSession(requestIdentifier: string): Promise<JamCommandResult> {
+    return this.submit(requestIdentifier, CommandPolicy.refreshCurrentOperation, async ownership => {
+      if (!ownership.protocol.readCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      const response = await withCancellation(ownership.protocol.readCurrentAccount(ownership.cancellation.signal), ownership.cancellation.signal);
+      if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      this.invitation = response?.invitation ? Object.freeze({ ...response.invitation }) : null;
+      const session = response ? Object.freeze({ ...response.session,
+        participants: Object.freeze(response.session.participants.map(participant => Object.freeze({ ...participant }))) }) : null;
+      this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session, failure: null });
+    }, true);
+  }
+
+  private submit(requestIdentifier: string, operation: string, command: (ownership: SessionOwnership) => Promise<void>,
+    readOnly = false, permissionFailure?: () => IntegrationFailureCode | null): Promise<JamCommandResult> {
     const ownership = this.ownership;
     if (!requestIdentifier.trim()) return Promise.resolve(this.rejected(IntegrationFailureCode.InvalidInput));
     if (!ownership) return Promise.resolve(this.rejected(IntegrationFailureCode.Unauthorized));
     const previous = ownership.operations.get(requestIdentifier);
     if (previous) return previous.operation === operation ? previous.result : Promise.resolve(this.rejected(IntegrationFailureCode.InvalidInput));
     if (this.snapshot.status === JamConnectionStatus.Uncertain && !readOnly) return Promise.resolve(this.rejected(IntegrationFailureCode.UnknownOutcome));
+    const permission = permissionFailure?.();
+    if (permission !== undefined && permission !== null) return Promise.resolve(this.rejected(permission));
     if (ownership.pending >= CommandPolicy.maximumPendingCommands) return Promise.resolve(this.rejected(IntegrationFailureCode.Backpressure));
     ownership.pending += CommandPolicy.commandCount;
     const result = ownership.tail.then(async () => {

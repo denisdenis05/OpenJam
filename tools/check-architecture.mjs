@@ -14,6 +14,17 @@ const IntegrationSources = Object.values({
   mobileConnection: '../StreamingServiceMobile/src/services/spotify/SpotifyIntegrationConnection.ts',
   mobileComposition: '../StreamingServiceMobile/src/services/SpotifyIntegration.ts',
   mobileTests: '../StreamingServiceMobile/tools/spotify-integration.test.cjs',
+  mobileController: '../StreamingServiceMobile/src/services/spotify/SpotifyMobileController.ts',
+  mobileGateway: '../StreamingServiceMobile/src/services/spotify/SpotifyMobileGateway.ts',
+  mobileInvitation: '../StreamingServiceMobile/src/services/spotify/SpotifyInvitation.ts',
+  mobileInvitationResolver: '../StreamingServiceMobile/src/services/spotify/SpotifyInvitationResolver.ts',
+  mobilePolicy: '../StreamingServiceMobile/src/services/spotify/SpotifyMobilePolicy.ts',
+  mobileService: '../StreamingServiceMobile/src/services/SpotifyMobileService.ts',
+  mobileScreen: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifyJam.render.tsx',
+  mobileScreenCopy: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifyJam.copy.ts',
+  mobileScreenStyle: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifyJam.style.ts',
+  mobileFeatureTests: '../StreamingServiceMobile/tools/spotify-mobile.test.cjs',
+  mobileScreenTests: '../StreamingServiceMobile/tools/spotify-screen.test.tsx',
 });
 const TypeScriptSuffix = '.ts';
 const JavaScriptSuffix = '.mjs';
