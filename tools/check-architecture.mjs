@@ -11,6 +11,10 @@ const IdentifierComponentSeparator = /(?=[A-Z])|_/;
 const ProhibitedIdentifierComponents = new Set(Object.values({ context: 'ctx', request: 'req', response: 'res', parameters: 'params', configuration: 'config', milliseconds: 'ms', identifier: 'id', identifiers: 'ids', function: 'fn', arguments: 'args', callback: 'cb', temporary: 'tmp', index: 'idx', authentication: 'auth', dataTransferObject: 'dto', applicationProgrammingInterface: 'api', randomNumberGenerator: 'rng' }));
 const CheckedDirectories = Object.values({ implementation: 'src', contracts: 'contracts', unitTests: 'tests', tools: 'tools' });
 const IntegrationSources = Object.values({
+  mobileHostedStore: '../StreamingServiceMobile/src/services/spotify/SpotifyHostedQueueStore.ts',
+  mobileHostedScreen: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifyHostedQueue.render.tsx',
+  mobileHostedTests: '../StreamingServiceMobile/tools/spotify-hosted-queue.test.cjs',
+  mobileHostedScreenTests: '../StreamingServiceMobile/tools/spotify-hosted-screen.test.tsx',
   mobileRecordingTests: '../StreamingServiceMobile/tools/spotify-recording-queue.test.cjs',
   mobileRecordingScreenTests: '../StreamingServiceMobile/tools/spotify-recording-screen.test.tsx',
   mobileRecordingStore: '../StreamingServiceMobile/src/services/spotify/SpotifyRecordingQueueStore.ts',

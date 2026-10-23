@@ -70,6 +70,11 @@ implement queue updates, Spotify audio playback or synchronization with our play
 
 ## Composition
 
+Optional [host queue observation](HOSTED_QUEUE_OBSERVATION.md) provides copied
+track/episode snapshots, host device checks and foreground polling. Enable it
+explicitly and supply a scheduler for polling. It does not establish shared guest
+queue delivery, settle unknown writes or synchronize audio.
+
 Optional host queue requests are described in [HOSTED_QUEUE.md](HOSTED_QUEUE.md).
 They require an owned active Jam with a known Spotify host, suitable OAuth
 permissions and explicit `enableHostedQueue` composition. Acceptance does not

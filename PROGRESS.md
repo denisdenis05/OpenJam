@@ -1,3 +1,22 @@
+# Hosted queue observation chapter — 2026-10-23
+
+Added optional `runtime.hostedQueue`, immutable track/episode snapshots and a
+public API reader that checks the owned active Jam's actual active device before
+and after reading the account queue. Duplicate entries retain array order; no
+stable occurrence identity, remote revision or atomic snapshot is invented.
+
+Observation starts no constructor HTTP, coalesces refreshes and requires explicit
+foreground observation plus an injected scheduler for polling. Background/hiding,
+identity changes and disposal cancel pending work. Failures pause polling and
+retain good data as stale; Retry-After remains enforced on manual/resume paths.
+A later valid Jam/host can recover from initial absence. Host observation cannot
+clear the unknown queue-write fence or enable guest queue/playback capabilities.
+
+Validation: `npm test` passed 276 cases across 14 files, including 41 dedicated
+host-observation cases. `npm run check`, `npm run build` and `git diff --check`
+passed. No live observation, registered-client admission, physical-device or
+shared playback result is claimed. See HOSTED_QUEUE_OBSERVATION.md.
+
 # App recording selection chapter — 2026-10-23
 
 User authorized all remaining development stages, one by one. Added

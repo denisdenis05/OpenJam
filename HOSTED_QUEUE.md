@@ -7,8 +7,9 @@ The track identifier must contain exactly 22 ASCII letters/digits. Translate a
 local recording with the existing matcher first and resolve ambiguity before
 submitting the selected Spotify identity.
 
-This is a host-only request adapter. Guest queue routing, queue observation and
-shared playback synchronization are not implemented. The configured queue
+This is a host-only request adapter. Guest queue routing and shared playback
+synchronization are not implemented. Optional host-only account queue observation
+is described in [HOSTED_QUEUE_OBSERVATION.md](HOSTED_QUEUE_OBSERVATION.md). The configured queue
 capability describes available request functionality, not successful live Jam
 propagation. `VerifiedJamCapabilities.queue` stays false by default.
 

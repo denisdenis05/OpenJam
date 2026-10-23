@@ -8,7 +8,7 @@ as successful because an adapter compiles.
 | --- | --- | --- |
 | Authentication | PKCE login/renewal exists; investigate private credentials and eligibility | Registered OAuth client not supplied; private Jam OAuth access unverified |
 | App song selection | Implemented: local recording → candidates → explicit selection → host queue | Catalog access previously rate limited |
-| Shared queue | Next: bounded observation and reconciliation; guest routing requires protocol evidence | Fresh shared/guest queue not established |
+| Shared queue | Implemented host observation; guest routing and authoritative reconciliation require protocol evidence | Fresh shared/guest queue not established |
 | Joining | Existing experimental join/leave; finish membership observation/reconnect | Second controlled account missing |
 | Playback together | Follow fresh playback state through local media, with authority and drift controls | Fresh remote playback feed and two-output measurement missing |
 | Persistent login | Secure account-owned credential storage/restoration | OS keychain/device tests required |

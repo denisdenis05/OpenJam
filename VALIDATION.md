@@ -1,3 +1,16 @@
+# Hosted queue observation validation — 2026-10-23
+
+Library `npm test` passed 276 deterministic cases across 14 files, including
+41 host-observation cases. Strict compilation/source checks, `npm run check`,
+`npm run build` and `git diff --check` passed. The observation cases cover parser
+bounds and metadata, before/after active-device checks, coalescing, private
+account/session/host ownership, uncooperative cancellation, polling gates,
+rate-limit backoff, initial host recovery and retained stale data.
+
+No live public queue read, custom-client admission, guest synchronization or
+physical-device result was established. Sequential host checks do not establish
+an atomic authoritative Jam queue or allow unknown-write reconciliation.
+
 # Login and hosted queue validation — 2026-10-23
 
 Library `npm test` passed 214 deterministic cases across twelve files, including

@@ -1,5 +1,6 @@
 import type { AssociationStore, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
-import type { Clock, HttpExecutor, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
+import type { Clock, HttpExecutor, Scheduler, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
+import type { HostedQueueReader } from '../contracts/hostedQueue';
 import type { JamQueueProtocol } from '../contracts/queue';
 import { CandidateRanker } from './catalog/CandidateRanker';
 import { SpotifyWebCatalog } from './catalog/SpotifyWebCatalog';
@@ -11,6 +12,8 @@ import { JamSessionClient } from './session/JamSessionClient';
 import { SpotifyHttpJamProtocol } from './session/SpotifyHttpJamProtocol';
 import { SpotifyWebQueueProtocol } from './session/SpotifyWebQueueProtocol';
 import { RecordingQueueCoordinator } from './session/RecordingQueueCoordinator';
+import { HostedQueueObserver } from './observation/HostedQueueObserver';
+import { SpotifyWebHostedQueueReader } from './observation/SpotifyWebHostedQueueReader';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
@@ -25,11 +28,15 @@ export interface SpotifyJamDependencies {
   readonly experimentalMembership?: boolean;
   readonly enableHostedQueue?: boolean;
   readonly queueProtocol?: JamQueueProtocol;
+  readonly enableHostedQueueObservation?: boolean;
+  readonly hostedQueueReader?: HostedQueueReader;
+  readonly scheduler?: Scheduler;
 }
 
 export class SpotifyJamRuntime {
   readonly sessions: JamSessionClient;
   readonly recordingQueue: RecordingQueueCoordinator;
+  readonly hostedQueue: HostedQueueObserver;
   private readonly lifetime = new AbortController();
   private readonly credentials: SpotifyCredentialSession;
   private readonly translator: TrackTranslator;
@@ -44,6 +51,8 @@ export class SpotifyJamRuntime {
       new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership),
       dependencies.enableHostedQueue ? dependencies.queueProtocol ?? new SpotifyWebQueueProtocol(requests) : null);
     this.recordingQueue = new RecordingQueueCoordinator(this.translator, this.sessions);
+    this.hostedQueue = new HostedQueueObserver(this.sessions, dependencies.hostedQueueReader ?? new SpotifyWebHostedQueueReader(requests),
+      dependencies.clock, dependencies.enableHostedQueueObservation, dependencies.scheduler);
   }
 
   async translateToSpotify(recordingIdentifier: string, market: string, cancellation: AbortSignal): Promise<MatchResult<SpotifySong>> {
@@ -65,6 +74,7 @@ export class SpotifyJamRuntime {
   }
 
   dispose(): void {
+    this.hostedQueue.dispose();
     this.recordingQueue.dispose();
     this.lifetime.abort();
     this.credentials.dispose();
