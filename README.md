@@ -43,8 +43,8 @@ remains unverified and is not implemented.
 ## Browser login
 
 [LOGIN.md](LOGIN.md) describes the library-owned PKCE flow and injected platform
-boundaries. Android mobile now opens Spotify sign-in and keeps renewable
-credentials in memory. A registered public client ID and exact callback are
+boundaries. Android/iOS boundaries now support Spotify sign-in, secure saved refresh grants
+and account-verified restoration. A registered public client ID and exact callback are
 required; no client secret or pasted access token is needed. Live OAuth access
 to the private Jam routes has not yet been established.
 

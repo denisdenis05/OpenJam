@@ -2,7 +2,9 @@ import type { Clock, HttpExecutor, SpotifyCredentialProvider, SpotifyCredentials
 
 export interface SpotifyLoginProvider extends SpotifyCredentialProvider {
   login(cancellation: AbortSignal): Promise<SpotifyCredentials>;
-  logout(): void;
+  logout(): void | Promise<void>;
+  restore?(cancellation: AbortSignal): Promise<SpotifyCredentials>;
+  dispose?(): void;
 }
 
 export interface SpotifyLoginConfiguration {
@@ -32,4 +34,17 @@ export interface SpotifyLoginDependencies {
   readonly requests: HttpExecutor;
   readonly clock: Clock;
   readonly resolveAccount: (accessToken: string, cancellation: AbortSignal) => Promise<string>;
+  readonly credentialStore?: SpotifyLoginCredentialStore;
+}
+
+export interface SpotifyLoginCredentialStore {
+  read(cancellation: AbortSignal): Promise<string | null>;
+  write(serialized: string, cancellation: AbortSignal): Promise<void>;
+  clear(): Promise<void>;
+}
+
+export interface SpotifyAccountCredentialStorage {
+  read(accountIdentifier: string, cancellation: AbortSignal): Promise<string | null>;
+  write(accountIdentifier: string, serialized: string, cancellation: AbortSignal): Promise<void>;
+  clear(accountIdentifier: string): Promise<void>;
 }

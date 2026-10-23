@@ -9,6 +9,8 @@ export * from './observation/HostedQueueValues';
 export * from './session/RecordingQueueCoordinator';
 export * from '../contracts/authentication';
 export * from './authentication/SpotifyLoginSession';
+export { loadSpotifyLoginConfiguration } from './authentication/SpotifySavedLogin';
+export * from './authentication/SpotifyCredentialOwnership';
 export * from '../contracts/network';
 export * from '../contracts/session';
 export * from '../contracts/queue';

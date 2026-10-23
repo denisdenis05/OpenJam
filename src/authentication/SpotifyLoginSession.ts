@@ -4,6 +4,8 @@ import type { SpotifyCredentials } from '../../contracts/network';
 import { checkCancellation, IntegrationFailure } from '../network/IntegrationFailure';
 import { withCancellation } from '../network/Cancellation';
 import { SpotifyLoginPolicy as Policy } from './SpotifyLoginPolicy';
+import { validatedSpotifyLoginConfiguration } from './SpotifyLoginConfiguration';
+import { decodeSavedSpotifyLogin, encodeSavedSpotifyLogin } from './SpotifySavedLogin';
 
 interface TokenResponse {
   readonly accessToken: string;
@@ -20,23 +22,13 @@ export class SpotifyLoginSession implements SpotifyLoginProvider {
   private readonly configuration: SpotifyLoginConfiguration;
 
   constructor(private readonly dependencies: SpotifyLoginDependencies) {
-    const configuration = Object.freeze({ clientIdentifier: dependencies.configuration.clientIdentifier,
-      redirectAddress: dependencies.configuration.redirectAddress, scopes: Object.freeze([...dependencies.configuration.scopes]) });
-    this.configuration = configuration;
-    let redirect: URL;
-    try { redirect = new URL(configuration.redirectAddress); } catch { throw new IntegrationFailure(IntegrationFailureCode.InvalidInput); }
-    if (!Policy.clientPattern.test(configuration.clientIdentifier) || redirect.username || redirect.password || redirect.hash
-      || redirect.search || Policy.forbiddenProtocols.includes(redirect.protocol)
-      || redirect.protocol === Policy.insecureProtocol && redirect.hostname !== Policy.loopbackIpv4 && redirect.hostname !== Policy.loopbackIpv6
-      || configuration.scopes.some(scope => !scope.trim() || scope.includes(Policy.scopeSeparator))) {
-      throw new IntegrationFailure(IntegrationFailureCode.InvalidInput);
-    }
+    this.configuration = validatedSpotifyLoginConfiguration(dependencies.configuration);
   }
 
   async login(cancellation: AbortSignal): Promise<SpotifyCredentials> {
     checkCancellation(cancellation);
     if (this.loggingIn || this.pendingRenewal !== null) throw new IntegrationFailure(IntegrationFailureCode.Backpressure);
-    this.logout();
+    this.resetMemory();
     this.loggingIn = true;
     const lifetime = this.lifetime;
     const abort = () => lifetime.abort();
@@ -59,7 +51,7 @@ export class SpotifyLoginSession implements SpotifyLoginProvider {
       const accountIdentifier = await withCancellation(this.dependencies.resolveAccount(tokens.accessToken, lifetime.signal), lifetime.signal);
       this.assertCurrent(lifetime);
       if (!accountIdentifier.trim()) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
-      return this.accept(tokens, accountIdentifier);
+      return await this.accept(tokens, accountIdentifier, lifetime);
     } catch (failure) {
       if (this.lifetime === lifetime) { this.credentials = null; this.refreshToken = null; }
       if (lifetime.signal.aborted) throw new IntegrationFailure(IntegrationFailureCode.Canceled);
@@ -68,6 +60,48 @@ export class SpotifyLoginSession implements SpotifyLoginProvider {
       cancellation.removeEventListener(Policy.abortEvent, abort);
       if (this.lifetime === lifetime) this.loggingIn = false;
     }
+  }
+
+  async restore(cancellation: AbortSignal): Promise<SpotifyCredentials> {
+    checkCancellation(cancellation);
+    if (!this.dependencies.credentialStore) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+    if (this.loggingIn || this.pendingRenewal !== null) throw new IntegrationFailure(IntegrationFailureCode.Backpressure);
+    this.resetMemory();
+    this.loggingIn = true;
+    const lifetime = this.lifetime;
+    const abort = () => lifetime.abort();
+    cancellation.addEventListener(Policy.abortEvent, abort, { once: true });
+    try {
+      const serialized = await withCancellation(this.dependencies.credentialStore.read(lifetime.signal), lifetime.signal);
+      this.assertCurrent(lifetime);
+      if (serialized === null) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+      const saved = decodeSavedSpotifyLogin(serialized);
+      if (!this.sameConfiguration(saved.configuration)) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+      const tokens = await this.exchange({ grant_type: Policy.refreshGrant, refresh_token: saved.refreshToken,
+        client_id: this.configuration.clientIdentifier }, saved.refreshToken, lifetime.signal);
+      await this.persist(tokens, saved.accountIdentifier, lifetime);
+      const accountIdentifier = await withCancellation(this.dependencies.resolveAccount(tokens.accessToken, lifetime.signal), lifetime.signal);
+      this.assertCurrent(lifetime);
+      if (accountIdentifier !== saved.accountIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+      return this.installCredentials(tokens, accountIdentifier, lifetime);
+    } catch (failure) {
+      if (this.lifetime === lifetime) {
+        this.credentials = null;
+        this.refreshToken = null;
+        if (failure instanceof IntegrationFailure && (failure.code === IntegrationFailureCode.Unauthorized
+          || failure.code === IntegrationFailureCode.InvalidResponse)) await this.clearSavedCredentials();
+      }
+      if (lifetime.signal.aborted) throw new IntegrationFailure(IntegrationFailureCode.Canceled);
+      throw failure instanceof IntegrationFailure ? failure : new IntegrationFailure(IntegrationFailureCode.Network);
+    } finally {
+      cancellation.removeEventListener(Policy.abortEvent, abort);
+      if (this.lifetime === lifetime) this.loggingIn = false;
+    }
+  }
+
+  private sameConfiguration(configuration: SpotifyLoginConfiguration): boolean {
+    return configuration.clientIdentifier === this.configuration.clientIdentifier && configuration.redirectAddress === this.configuration.redirectAddress
+      && JSON.stringify([...configuration.scopes].sort()) === JSON.stringify([...this.configuration.scopes].sort());
   }
 
   async getCredentials(cancellation: AbortSignal): Promise<SpotifyCredentials> {
@@ -87,10 +121,10 @@ export class SpotifyLoginSession implements SpotifyLoginProvider {
       const accountIdentifier = this.credentials.accountIdentifier;
       const renewal = this.exchange({ grant_type: Policy.refreshGrant, refresh_token: this.refreshToken,
         client_id: this.configuration.clientIdentifier }, this.refreshToken, lifetime.signal)
-        .then(tokens => { this.assertCurrent(lifetime); return this.accept(tokens, accountIdentifier); })
-        .catch(failure => {
-          if (this.lifetime === lifetime && failure instanceof IntegrationFailure && failure.code === IntegrationFailureCode.Unauthorized) this.logout();
-          throw failure;
+        .then(tokens => { this.assertCurrent(lifetime); return this.accept(tokens, accountIdentifier, lifetime); })
+        .catch(async failure => {
+          if (this.lifetime === lifetime && failure instanceof IntegrationFailure && failure.code === IntegrationFailureCode.Unauthorized) await this.logout();
+          throw failure instanceof IntegrationFailure ? failure : new IntegrationFailure(IntegrationFailureCode.Network);
         });
       this.pendingRenewal = renewal;
       void renewal.finally(() => { if (this.pendingRenewal === renewal) this.pendingRenewal = null; }).catch(() => {});
@@ -101,7 +135,19 @@ export class SpotifyLoginSession implements SpotifyLoginProvider {
     return credentials;
   }
 
-  logout(): void {
+  logout(): Promise<void> {
+    this.resetMemory();
+    return this.clearSavedCredentials();
+  }
+
+  private async clearSavedCredentials(): Promise<void> {
+    try { await this.dependencies.credentialStore?.clear(); }
+    catch (failure) { throw failure instanceof IntegrationFailure ? failure : new IntegrationFailure(IntegrationFailureCode.CredentialStorage); }
+  }
+
+  dispose(): void { this.resetMemory(); }
+
+  private resetMemory(): void {
     this.lifetime.abort();
     this.lifetime = new AbortController();
     this.credentials = null;
@@ -163,7 +209,22 @@ export class SpotifyLoginSession implements SpotifyLoginProvider {
       && (value as string).length <= Policy.maximumTokenCharacters && !TokenWhitespacePattern.test(value as string);
   }
 
-  private accept(tokens: TokenResponse, accountIdentifier: string): SpotifyCredentials {
+  private async accept(tokens: TokenResponse, accountIdentifier: string, lifetime: AbortController): Promise<SpotifyCredentials> {
+    await this.persist(tokens, accountIdentifier, lifetime);
+    return this.installCredentials(tokens, accountIdentifier, lifetime);
+  }
+
+  private async persist(tokens: TokenResponse, accountIdentifier: string, lifetime: AbortController): Promise<void> {
+    this.assertCurrent(lifetime);
+    if (this.dependencies.credentialStore) {
+      const serialized = encodeSavedSpotifyLogin(this.configuration, accountIdentifier, tokens.refreshToken);
+      await withCancellation(this.dependencies.credentialStore.write(serialized, lifetime.signal), lifetime.signal);
+      this.assertCurrent(lifetime);
+    }
+  }
+
+  private installCredentials(tokens: TokenResponse, accountIdentifier: string, lifetime: AbortController): SpotifyCredentials {
+    this.assertCurrent(lifetime);
     this.refreshToken = tokens.refreshToken;
     this.credentials = Object.freeze({ accountIdentifier, accessToken: tokens.accessToken, expiresAtMilliseconds: tokens.expiresAtMilliseconds });
     return this.credentials;

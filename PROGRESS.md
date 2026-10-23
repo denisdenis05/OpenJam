@@ -1,3 +1,34 @@
+# Saved login and iOS boundary chapter — 2026-10-23
+
+Added optional account-owned secure credential persistence and restore to
+SpotifyLoginSession. Saved records contain refresh grant/configuration/account,
+not access tokens or proof material. Restore verifies account identity and saves
+rotated refresh grants before a potentially rate-limited profile lookup. Logout
+clears durable storage; dispose preserves it. Credential ownership serializes
+writes/clears and rejects retired leases so older work cannot overwrite a newer
+login. Public saved-configuration loading exposes no token.
+
+The mobile app uses pinned react-native-keychain 10.0.0 with Android AES-GCM
+Keystore and iOS device-only, noncloud Keychain options. Nonsecret revocation
+metadata prevents restoring a login whose physical deletion failed. Cold app
+account restoration preserves its saved login; actual logout removes it even
+without an active Spotify connection. Pending deletion remains visible until
+storage acknowledgement. iOS proof generation and callback registration are now
+implemented, including actual Apple SDK Swift and Objective-C syntax checks.
+
+Validation: npm test passed 342 cases across 16 files, including 28 saved-login
+cases and the existing 23 browser-login cases. Mobile host/service/UI counts and
+native packaging evidence are recorded in its progress file. Live OAuth/private
+Jam admission, guest queue commands and synchronized playback remain unverified;
+no tokens, passwords or cookies were acquired during this chapter.
+
+Source implementation now covers matching, host queue, membership recovery
+and saved/platform login. Fresh cross-account playback and
+command-routing protocols remain unresolved; do not wire a native follower to an
+invented queue revision or stale Connect snapshot. Required next evidence is a
+registered OAuth client plus two controlled clients, with the installed desktop
+client's debugging endpoint enabled. DEVELOPMENT_SEQUENCE.md retains those gates.
+
 # Membership observation chapter — 2026-10-23
 
 Added opt-in `runtime.membership` with metadata-only snapshots, injected request

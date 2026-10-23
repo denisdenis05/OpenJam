@@ -12,6 +12,7 @@ export enum IntegrationFailureCode {
   Unsupported = 'unsupported',
   UnknownOutcome = 'unknown-outcome',
   Backpressure = 'backpressure',
+  CredentialStorage = 'credential-storage',
 }
 
 export interface HttpRequest {

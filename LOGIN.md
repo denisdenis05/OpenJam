@@ -1,60 +1,83 @@
-# Spotify browser login
+# Spotify login and saved credentials
 
-`SpotifyLoginSession` owns Authorization Code with PKCE, callback validation,
-code exchange, in-memory credentials and refresh-token renewal. It implements
-`SpotifyCredentialProvider`, so the same login instance can supply a
-`SpotifyJamRuntime`. Login does not create a Jam automatically.
+`SpotifyLoginSession` owns Authorization Code with PKCE, exact callback/state
+validation, code exchange, account verification, refresh renewal and restoration.
+It implements `SpotifyLoginProvider`. The runtime consumes its credential-provider
+interface; disposing a runtime does not end a remote Jam or forget a saved login.
 
-The host injects a registered public client identifier, exact callback address,
-scopes, secure proof-key generator, browser authorization adapter, HTTP executor,
-clock and authenticated account resolver. There is no client secret in a mobile
-application. The browser opens Spotify's own authorization page; the library never
-collects the user's password. The proof generator must use cryptographic entropy
-and SHA-256 with unpadded URL-safe Base64. The library validates proof shapes;
-the injected generator owns cryptographic correctness.
+Inject a registered public client ID, exact callback, requested scopes, secure
+proof-key generator, browser, HTTP executor, clock and account resolver. No client
+secret or password collection belongs in the app. The Android/iOS proof boundary
+uses separate 256-bit entropy for verifier/state, SHA-256 of the encoded verifier
+and unpadded URL-safe Base64. The library validates the supplied proof shape.
 
-The mobile Android boundary provides SecureRandom/SHA-256 proof generation and
-uses the existing in-app browser's authorization session. Its external native
-`openAuth`/`closeAuth` method names are mapped at the platform boundary to the
-project's `openAuthorization`/`closeAuthorization` adapter contract. Its registered callback
-is `streamingservicespotify://callback`. The personal-test screen accepts the
-public client ID, then calls the library login flow. Register that exact callback
-in the Spotify application dashboard. No registered client ID was supplied for
-this implementation, and the build does not borrow an official Spotify client's
-identifier. A successful real browser callback and private Jam credential access
-remain unverified.
+The mobile callback is `streamingservicespotify://callback`, registered in both
+Android and iOS. Spotify must also accept it in the developer application's
+redirect allowlist. Public profile verification uses `/v1/me`, preferring
+`account_id` with `id` compatibility. A registered client ID was not supplied for
+this work. Real OAuth admission to private Jam routes is still unverified;
+desktop research credentials are not substituted when OAuth access fails.
 
-The mobile flow requests `user-read-private`, `user-read-playback-state` and
-`user-modify-playback-state`. OAuth account verification uses the official
-`/v1/me` profile and prefers `account_id` when present, with `id` compatibility.
-Desktop-session credentials previously used for private-protocol research do not
-prove that a registered third-party OAuth token can call private Jam routes.
-After login the app performs a passive current-Jam read; failed authorization or
-an unexpected response prevents mutations. It does not substitute a desktop
-credential when OAuth access fails.
+## Durable login
 
-State and callback destination must match before code exchange. Duplicate state
-or code parameters are rejected. Codes and proof verifiers travel only to
-Spotify's fixed HTTPS token endpoint through an injected executor that rejects
-redirects. Access and refresh tokens remain in memory; there is no persistent
-login storage in this chapter. App restart requires sign-in again.
+Supply an account-owned `SpotifyLoginCredentialStore` to enable persistence.
+The versioned saved record contains the requested client/callback/scopes,
+verified Spotify account identifier and refresh token. Access tokens, authorization
+codes, proof verifiers, invitations and app authentication tokens are not saved.
+`loadSpotifyLoginConfiguration` exposes only immutable public configuration.
 
-Renewal shares a single exchange, handles refresh-token rotation and retains the
-previous refresh token when omitted. Rejected grants remove credentials. Logout
-aborts the login lifetime and rejects late browser, transport and account lookup
-results. A canceled renewal caller rejects promptly without canceling another
-caller's shared renewal. Token exchange is not automatically retried.
+`restore` exchanges the saved refresh token and verifies the same Spotify account
+before installing credentials. A rotated refresh token is persisted before that
+profile request so a transient profile failure does not discard renewal material.
+Invalid records, incompatible configuration and rejected grants are erased.
+Transient failures retain usable renewal material for a later attempt.
 
-Dedicated tests are `tests/spotify-login.test.mjs` and the form-body transport case
-in `tests/network.test.mjs`. Mobile tests cover browser completion/cancellation,
-controller account boundaries, profile verification, screen submission and
-Android proof generation. These deterministic tests and native packaging do not
-establish live OAuth admission, cross-account joining or shared queue propagation.
+`SpotifyCredentialOwnership` serializes storage across account-bound provider
+leases. A retired provider cannot overwrite a newer login or erase it with an old
+logout. An accepted forget operation runs after preceding storage work, and later
+saves run after it. Forgetting another account does not retire the current lease.
+The native boundary must implement secure storage; the library does not turn an
+ordinary file or database into an encrypted store.
 
-Protocol references: [Spotify PKCE flow](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow),
+The mobile app pins react-native-keychain 10.0.0. Android uses its AES-GCM Keystore
+storage; iOS uses Keychain after-first-unlock, device-only accessibility and no
+cloud synchronization. A separate nonsecret revocation marker prevents automatic
+restoration if physical credential deletion fails. Only that marker goes into
+AsyncStorage. A successful new sign-in removes its marker after secure persistence.
+No Spotify token or serialized grant is stored in AsyncStorage/MMKV.
+
+Opening the Jam screen attempts saved restoration for the authenticated app
+account. No saved record leaves the normal login form available. Disconnect or
+Forget removes saved login and shows pending removal until storage acknowledges
+completion. Storage failure is explicit. App logout/account replacement forgets
+the former account, including when Spotify was not opened in that process.
+Cold restoration of the app account does not erase its saved Spotify login.
+
+`dispose` retires in-memory login work and preserves the saved grant for restart
+or hot reload. `logout` retires memory immediately and returns the storage-clear
+promise. Consumers should await it before claiming durable removal. Storage and
+network errors expose typed failures rather than private error messages.
+
+Refresh exchanges are shared, handle token rotation and retain an omitted refresh
+token. A canceled renewal caller does not cancel another caller's work. Neither
+code exchange nor refresh is automatically retried. Late account/browser/storage
+results cannot establish a retired login.
+
+## Platform and validation boundaries
+
+Android uses the existing in-app browser and secure native proof-key module.
+iOS now includes the matching module and callback registration. External
+`openAuth`/`closeAuth` names are mapped to the project's unabbreviated browser
+adapter contract. Swift/Objective-C module names and generated selectors are
+required React Native/framework boundaries.
+
+Dedicated suites are `tests/spotify-login.test.mjs`, `tests/saved-login.test.mjs`
+and the form-body case in `tests/network.test.mjs`. Mobile tests cover secure
+storage policy, logical revocation, provider ownership, cold restoration,
+disconnection acknowledgement and stale results. Native proof tests and SDK
+compilation are additional evidence, not physical Keychain/Keystore execution.
+
+References: [Spotify PKCE](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow),
 [redirect requirements](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri),
-[Spotify's custom-scheme guidance](https://developer.spotify.com/blog/2025-02-12-increasing-the-security-requirements-for-integrating-with-spotify).
-HTTPS callbacks are preferred. The Android test build uses its dedicated custom
-scheme and still requires Spotify to accept the configured registered callback.
-There is no iOS proof-key boundary in this chapter; it reports Unsupported rather
-than generating weak proof material.
+[custom-scheme guidance](https://developer.spotify.com/blog/2025-02-12-increasing-the-security-requirements-for-integrating-with-spotify),
+[keychain package](https://github.com/oblador/react-native-keychain/releases/tag/v10.0.0).

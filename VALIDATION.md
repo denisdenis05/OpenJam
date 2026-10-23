@@ -1,3 +1,16 @@
+# Saved login validation — 2026-10-23
+
+Library npm test passed 342 deterministic cases across 16 files, including 28
+saved-login cases. Source checking and strict compilation ran as part of that
+command. The optional credential store, restore flow and storage ownership use
+injected collaborators. Native OS storage execution and real OAuth admission are
+separate device gates. Mobile native/package results are recorded in its own
+progress file; no cross-account audio result is claimed.
+
+Package dry-run review passed with 99 files, including saved-login implementation,
+contracts and documentation. Tests, dependencies and removed experimental output
+were excluded. Nothing was published.
+
 # Membership observation validation — 2026-10-23
 
 Library `npm test` passed 314 deterministic cases across 15 files, including

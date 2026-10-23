@@ -5,6 +5,7 @@
 | Browser authorization, proof validation, exact callback/state checks, consent denial, exchange validation, refresh rotation/single flight, expiry, immutable configuration and cancellation/logout races | `tests/spotify-login.test.mjs` |
 | HTTP form-body forwarding for the token endpoint | `tests/network.test.mjs` |
 | App recording preparation, explicit ambiguous selection, validation, immutable snapshots/session identity, cancellation before dispatch, receipt retention after dispatch, duplicate submission, confirmation failure and account/host retirement | `tests/recording-queue.test.mjs` |
+| Durable login encoding/configuration, restoration, account validation, refresh rotation, transient profile recovery, explicit logout vs disposal, canceled/stale writes, serialized account leases and sanitized storage errors | `tests/saved-login.test.mjs` |
 | Source-standard enforcement and negative fixtures | `tests/architecture.test.mjs` |
 | Minimal schema, duration/codes, version conflicts, Unicode, artist sets, ambiguity, duplicate candidates, availability and bounded ranking | `tests/catalog-matching.test.mjs` |
 | Both translation directions, confirmation, invalidation, market isolation, many-to-one identity, missing sources, typed failures and cancellation | `tests/catalog-matching.test.mjs` |

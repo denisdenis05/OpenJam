@@ -6,16 +6,16 @@ as successful because an adapter compiles.
 
 | Chapter | Implementation | Live gate |
 | --- | --- | --- |
-| Authentication | PKCE login/renewal exists; investigate private credentials and eligibility | Registered OAuth client not supplied; private Jam OAuth access unverified |
+| Authentication | PKCE login/renewal/secure restoration implemented; private credential admission remains unverified | Registered OAuth client not supplied; private Jam OAuth access unverified |
 | App song selection | Implemented: local recording → candidates → explicit selection → host queue | Catalog access previously rate limited |
 | Shared queue | Implemented host observation; guest routing and authoritative reconciliation require protocol evidence | Fresh shared/guest queue not established |
 | Joining | Implemented foreground membership observation/recovery; join/leave remain experimental | Second controlled account missing |
-| Playback together | Blocked on verified fresh remote state and native authority design; do not wire an unsafe follower | Fresh remote playback feed and two-output measurement missing |
-| Persistent login | Secure account-owned credential storage/restoration | OS keychain/device tests required |
-| Mobile lifecycle | Resume/reconnect; iOS proof-key and secure storage boundary | Native background and iOS/device tests required |
+| Playback together | Unimplemented: verified fresh remote playback/command protocol is required before a native follower | Fresh remote playback feed and two-output measurement missing |
+| Persistent login | Implemented account-owned refresh storage/restoration and durable forget | OS keychain/device tests required |
+| Mobile lifecycle | Implemented foreground recovery, iOS proof-key and secure storage boundaries; native background shared transport remains open | Native background and iOS/device tests required |
 
 Current production login requires a registered public Spotify client ID and exact
-callback. No official Spotify client identifier is borrowed. The research agent
-is investigating private native authentication and queue/playback paths; desktop
-credential reuse is research evidence only. Implementation can continue on
+callback. No official Spotify client identifier is borrowed. Research identified the native authentication boundary but could not capture a
+fresh private guest/playback stream without a desktop debugging endpoint and a
+second controlled client. Desktop credential reuse is research evidence only. Implementation can continue on
 independent components while external admission gates remain pending.

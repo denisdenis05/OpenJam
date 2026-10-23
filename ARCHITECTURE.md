@@ -80,7 +80,9 @@ negative-fixture tests; its selected syntax checks do not prove all naming,
 policy ownership, or architectural requirements. Deliberately invalid source
 strings in checker tests are negative fixtures, not executable library examples.
 
-The current library contains no native bridge and does not change minimum Android
-or iOS versions. Native background ownership, Spotify playback integration, guest
-management, queue controls and push subscriptions require additional verified
-contracts and platform tests.
+The library contains no native bridge and does not change minimum Android or iOS
+versions. The mobile composition owns native proof generation and credential
+storage. Host queue submission/observation and foreground membership recovery
+are implemented; guest queue routing, push subscriptions, native background
+ownership and synchronized Spotify playback require verified protocols and
+platform tests. See DEVELOPMENT_SEQUENCE.md for implementation and live gates.
