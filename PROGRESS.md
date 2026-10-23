@@ -1,3 +1,34 @@
+# App recording selection chapter — 2026-10-23
+
+User authorized all remaining development stages, one by one. Added
+RecordingQueueCoordinator and runtime.recordingQueue: local catalog lookup,
+Spotify candidates, explicit confirmation, then host queue submission. Matching
+never queues automatically. Invalid/unavailable/conflicting choices and unknown
+outcomes do not produce automatic retries. Captured account/session/host identity
+is immutable and cleared on replacement; disposal retires asynchronous matching.
+Cancellation stops lookup/confirmation before dispatch. Once an enqueue is sent,
+the coordinator waits for its actual receipt and keeps submission busy even if
+the caller cancels, so cancellation cannot imply that the remote write was undone.
+Account/runtime retirement still discards the projection.
+
+Dedicated tests: tests/recording-queue.test.mjs (21 cases). Full npm test passed
+235 library cases across 13 files, with source checks and strict compilation.
+Mobile adds the shared song-menu action, account-bound route metadata, a bounded
+selection store and explicit candidate screen. Mobile validation counts are in
+its progress file. No live catalog/queue/device result is claimed.
+
+Authentication protocol research remains open: installed token acquisition crosses
+native Login5; ordinary OAuth refresh tokens are not reusable native Login5
+credentials. The current Spotify process has no debug listener. A single
+non-disruptive launch attempt forwarded to the existing process without enabling
+it; no process was killed and no playback/queue/session mutations occurred.
+Research details and pinned primary references remain at
+spotify-jam-research/PRIVATE_PROTOCOL_NEXT_BLOCKS.md outside the production package.
+
+Continue with host queue observation and reconciliation before guest routing and
+playback authority. DEVELOPMENT_SEQUENCE.md tracks all seven requested stages;
+private OAuth admission and cross-account live gates remain pending.
+
 # Browser login and hosted queue chapter — 2026-10-23
 
 Added `SpotifyLoginProvider` and `SpotifyLoginSession`: injected PKCE proof/browser,

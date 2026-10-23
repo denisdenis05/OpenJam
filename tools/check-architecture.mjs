@@ -11,6 +11,12 @@ const IdentifierComponentSeparator = /(?=[A-Z])|_/;
 const ProhibitedIdentifierComponents = new Set(Object.values({ context: 'ctx', request: 'req', response: 'res', parameters: 'params', configuration: 'config', milliseconds: 'ms', identifier: 'id', identifiers: 'ids', function: 'fn', arguments: 'args', callback: 'cb', temporary: 'tmp', index: 'idx', authentication: 'auth', dataTransferObject: 'dto', applicationProgrammingInterface: 'api', randomNumberGenerator: 'rng' }));
 const CheckedDirectories = Object.values({ implementation: 'src', contracts: 'contracts', unitTests: 'tests', tools: 'tools' });
 const IntegrationSources = Object.values({
+  mobileRecordingTests: '../StreamingServiceMobile/tools/spotify-recording-queue.test.cjs',
+  mobileRecordingScreenTests: '../StreamingServiceMobile/tools/spotify-recording-screen.test.tsx',
+  mobileRecordingStore: '../StreamingServiceMobile/src/services/spotify/SpotifyRecordingQueueStore.ts',
+  mobileSongSelection: '../StreamingServiceMobile/src/services/spotify/SpotifySongSelection.ts',
+  mobileSongMenuAction: '../StreamingServiceMobile/src/services/SpotifyJamMenuAction.ts',
+  mobileRecordingScreen: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifyRecordingQueue.render.tsx',
   mobileLoginBrowser: '../StreamingServiceMobile/src/services/spotify/SpotifyLoginBrowser.ts',
   mobileLoginPlatform: '../StreamingServiceMobile/src/services/SpotifyLoginPlatform.ts',
   mobileQueueTrack: '../StreamingServiceMobile/src/services/spotify/SpotifyQueueTrack.ts',

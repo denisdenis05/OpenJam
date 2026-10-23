@@ -10,6 +10,7 @@ import { SpotifyRequestClient } from './network/SpotifyRequestClient';
 import { JamSessionClient } from './session/JamSessionClient';
 import { SpotifyHttpJamProtocol } from './session/SpotifyHttpJamProtocol';
 import { SpotifyWebQueueProtocol } from './session/SpotifyWebQueueProtocol';
+import { RecordingQueueCoordinator } from './session/RecordingQueueCoordinator';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
@@ -28,6 +29,7 @@ export interface SpotifyJamDependencies {
 
 export class SpotifyJamRuntime {
   readonly sessions: JamSessionClient;
+  readonly recordingQueue: RecordingQueueCoordinator;
   private readonly lifetime = new AbortController();
   private readonly credentials: SpotifyCredentialSession;
   private readonly translator: TrackTranslator;
@@ -41,6 +43,7 @@ export class SpotifyJamRuntime {
     this.sessions.attachAccount(dependencies.accountIdentifier,
       new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership),
       dependencies.enableHostedQueue ? dependencies.queueProtocol ?? new SpotifyWebQueueProtocol(requests) : null);
+    this.recordingQueue = new RecordingQueueCoordinator(this.translator, this.sessions);
   }
 
   async translateToSpotify(recordingIdentifier: string, market: string, cancellation: AbortSignal): Promise<MatchResult<SpotifySong>> {
@@ -62,6 +65,7 @@ export class SpotifyJamRuntime {
   }
 
   dispose(): void {
+    this.recordingQueue.dispose();
     this.lifetime.abort();
     this.credentials.dispose();
     this.sessions.detachAccount();

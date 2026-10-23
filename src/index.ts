@@ -1,4 +1,6 @@
 export * from '../contracts/catalog';
+export * from '../contracts/recordingQueue';
+export * from './session/RecordingQueueCoordinator';
 export * from '../contracts/authentication';
 export * from './authentication/SpotifyLoginSession';
 export * from '../contracts/network';
