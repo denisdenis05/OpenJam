@@ -70,6 +70,11 @@ implement queue updates, Spotify audio playback or synchronization with our play
 
 ## Composition
 
+Optional [passive membership observation](MEMBERSHIP_OBSERVATION.md) polls the
+verified account-current endpoint and recovers after foreground resumption.
+Inject fresh request identifiers and a scheduler for automatic polling. It
+cancels passive reads individually and never joins or creates a Jam automatically.
+
 Optional [host queue observation](HOSTED_QUEUE_OBSERVATION.md) provides copied
 track/episode snapshots, host device checks and foreground polling. Enable it
 explicitly and supply a scheduler for polling. It does not establish shared guest

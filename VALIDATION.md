@@ -1,3 +1,13 @@
+# Membership observation validation — 2026-10-23
+
+Library `npm test` passed 314 deterministic cases across 15 files, including
+38 membership observation/cancellation cases. Passive cancellation retains prior
+membership failure/status and does not abort remote writes; failed/rate-limited
+polls pause and preserve stale receipt metadata. No live guest/push/device or
+audio synchronization result is implied.
+
+`npm run check`, `npm run build` and `git diff --check` also passed.
+
 # Hosted queue observation validation — 2026-10-23
 
 Library `npm test` passed 276 deterministic cases across 14 files, including

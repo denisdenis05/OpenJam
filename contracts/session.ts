@@ -55,6 +55,7 @@ export interface JamSnapshot {
 export interface JamCommandResult {
   readonly applied: boolean;
   readonly failure: IntegrationFailureCode | null;
+  readonly retryAfterSeconds?: number;
 }
 
 export interface ExternalStore<State> {

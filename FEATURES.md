@@ -21,6 +21,8 @@
 | Explicit hosted queue request encoding/validation, host decoding, disabled/guest/inactive/missing-host rejection, replay/conflicts, ordered membership changes, cancellation, account fences, bounds and unknown queue outcomes surviving membership refresh | `tests/hosted-queue.test.mjs` |
 | Host queue item decoding, duplicate order, episodes, bounds and active device checks before/after account queue reads | `tests/hosted-queue-observation.test.mjs` |
 | Disabled/guest/missing-host observation, coalescing, frozen snapshots, account/session/host races, background cancellation, disposal, foreground polling, paused failures, Retry-After and later host recovery | `tests/hosted-queue-observation.test.mjs` |
+| Membership passive polling, absence/recovery, metadata-only snapshots, coalescing, account/foreground lifecycle, rate guidance and bounded fresh request identity validation | `tests/membership-observation.test.mjs` |
+| Individual passive cancellation, exact prior status/failure restoration, queued mutation isolation, late-response fencing, optional retry receipts and unknown queue-write preservation | `tests/membership-observation.test.mjs` |
 | Commands, request deduplication/conflicts, host permission, account switch, detach, backpressure and subscriber ownership | `tests/jam-session.test.mjs` |
 | Unknown outcomes, queued-command fencing and passive reconciliation | `tests/jam-session.test.mjs` |
 | Immutable private snapshots, explicit invitation access and capability truthfulness | `tests/jam-session.test.mjs` |

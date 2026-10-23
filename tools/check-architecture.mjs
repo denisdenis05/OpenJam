@@ -11,6 +11,11 @@ const IdentifierComponentSeparator = /(?=[A-Z])|_/;
 const ProhibitedIdentifierComponents = new Set(Object.values({ context: 'ctx', request: 'req', response: 'res', parameters: 'params', configuration: 'config', milliseconds: 'ms', identifier: 'id', identifiers: 'ids', function: 'fn', arguments: 'args', callback: 'cb', temporary: 'tmp', index: 'idx', authentication: 'auth', dataTransferObject: 'dto', applicationProgrammingInterface: 'api', randomNumberGenerator: 'rng' }));
 const CheckedDirectories = Object.values({ implementation: 'src', contracts: 'contracts', unitTests: 'tests', tools: 'tools' });
 const IntegrationSources = Object.values({
+  mobileObservationStore: '../StreamingServiceMobile/src/services/spotify/SpotifyObservationStore.ts',
+  mobileMembershipStore: '../StreamingServiceMobile/src/services/spotify/SpotifyMembershipStore.ts',
+  mobileMembershipScreen: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifyJamMembership.render.tsx',
+  mobileMembershipTests: '../StreamingServiceMobile/tools/spotify-membership-mobile.test.cjs',
+  mobileMembershipScreenTests: '../StreamingServiceMobile/tools/spotify-membership-screen.test.tsx',
   mobileHostedStore: '../StreamingServiceMobile/src/services/spotify/SpotifyHostedQueueStore.ts',
   mobileHostedScreen: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifyHostedQueue.render.tsx',
   mobileHostedTests: '../StreamingServiceMobile/tools/spotify-hosted-queue.test.cjs',

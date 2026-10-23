@@ -14,6 +14,7 @@ import { SpotifyWebQueueProtocol } from './session/SpotifyWebQueueProtocol';
 import { RecordingQueueCoordinator } from './session/RecordingQueueCoordinator';
 import { HostedQueueObserver } from './observation/HostedQueueObserver';
 import { SpotifyWebHostedQueueReader } from './observation/SpotifyWebHostedQueueReader';
+import { JamMembershipObserver } from './observation/JamMembershipObserver';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
@@ -31,12 +32,15 @@ export interface SpotifyJamDependencies {
   readonly enableHostedQueueObservation?: boolean;
   readonly hostedQueueReader?: HostedQueueReader;
   readonly scheduler?: Scheduler;
+  readonly enableMembershipObservation?: boolean;
+  readonly membershipRequestIdentifiers?: () => string;
 }
 
 export class SpotifyJamRuntime {
   readonly sessions: JamSessionClient;
   readonly recordingQueue: RecordingQueueCoordinator;
   readonly hostedQueue: HostedQueueObserver;
+  readonly membership: JamMembershipObserver;
   private readonly lifetime = new AbortController();
   private readonly credentials: SpotifyCredentialSession;
   private readonly translator: TrackTranslator;
@@ -53,6 +57,8 @@ export class SpotifyJamRuntime {
     this.recordingQueue = new RecordingQueueCoordinator(this.translator, this.sessions);
     this.hostedQueue = new HostedQueueObserver(this.sessions, dependencies.hostedQueueReader ?? new SpotifyWebHostedQueueReader(requests),
       dependencies.clock, dependencies.enableHostedQueueObservation, dependencies.scheduler);
+    this.membership = new JamMembershipObserver(this.sessions, dependencies.clock, dependencies.enableMembershipObservation,
+      dependencies.membershipRequestIdentifiers, dependencies.scheduler);
   }
 
   async translateToSpotify(recordingIdentifier: string, market: string, cancellation: AbortSignal): Promise<MatchResult<SpotifySong>> {
@@ -74,6 +80,7 @@ export class SpotifyJamRuntime {
   }
 
   dispose(): void {
+    this.membership.dispose();
     this.hostedQueue.dispose();
     this.recordingQueue.dispose();
     this.lifetime.abort();

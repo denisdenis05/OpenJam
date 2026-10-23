@@ -1,3 +1,24 @@
+# Membership observation chapter — 2026-10-23
+
+Added opt-in `runtime.membership` with metadata-only snapshots, injected request
+identities, coalesced passive refresh, foreground/consumer polling gates, account
+cancellation and error/Retry-After recovery. An absent Jam is a successful passive
+result that can later detect a Jam from another device. No create/join/end action
+is automatic. No constructor starts network work.
+
+Account-current session refresh now accepts individual passive cancellation.
+Cancellation restores the prior Ready/Failed/Uncertain snapshot, rejects late
+updates and cannot cancel an earlier remote mutation. A queued cancelled passive
+receipt resolves promptly while bounded serialized retirement remains intact.
+Optional command retry guidance is retained only when supplied. Membership reads
+never clear the separate unknown queue-write fence.
+
+Validation: `npm test` passed 314 library cases across 15 files, including
+38 dedicated membership-observation/passive-cancellation cases. `npm run check`,
+`npm run build` and `git diff --check` passed. See
+MEMBERSHIP_OBSERVATION.md. Guest admission, push events, physical-device lifecycle
+and synchronized playback remain unverified.
+
 # Hosted queue observation chapter — 2026-10-23
 
 Added optional `runtime.hostedQueue`, immutable track/episode snapshots and a
