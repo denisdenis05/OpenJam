@@ -219,3 +219,19 @@ test(Names.staleResponse, async () => {
   await started.promise; state.session.dispose(); pending.resolve({ status: Values.successStatus, body: null });
   await assert.rejects(response, { code: library.IntegrationFailureCode.Superseded });
 });
+
+const FormFixture = Object.freeze({ name: 'Fetch executor forwards a caller supplied form body unchanged',
+  body: 'grant_type=authorization_code&code=encoded%2Bcode', method: 'POST', contentTypeHeader: 'content-type',
+  contentType: 'application/x-www-form-urlencoded' });
+test(FormFixture.name, async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (address, options) => {
+    assert.equal(options.body, FormFixture.body);
+    assert.equal(options.headers[FormFixture.contentTypeHeader], FormFixture.contentType);
+    return new Response(FetchFixture.jsonText, { status: Values.successStatus });
+  };
+  try {
+    await new library.FetchHttpExecutor(new ManualScheduler()).execute({ address: Values.catalogAddress, method: FormFixture.method,
+      headers: { [FormFixture.contentTypeHeader]: FormFixture.contentType }, body: FormFixture.body, cancellation: cancellation().signal });
+  } finally { globalThis.fetch = originalFetch; }
+});

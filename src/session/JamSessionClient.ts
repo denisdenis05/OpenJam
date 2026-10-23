@@ -1,15 +1,17 @@
 import { IntegrationFailureCode } from '../../contracts/network';
 import { JamConnectionStatus, JamJoinMode } from '../../contracts/session';
 import type { ExternalStore, JamCapabilities, JamCommandResult, JamInvitation, JamProtocol, JamSnapshot } from '../../contracts/session';
+import type { JamQueueProtocol } from '../../contracts/queue';
 import { failureCode, IntegrationFailure } from '../network/IntegrationFailure';
 import { withCancellation } from '../network/Cancellation';
+import { validateSpotifyQueueTrack } from './SpotifyQueueTrack';
 
 export const VerifiedJamCapabilities: JamCapabilities = Object.freeze({
   createOrActivate: true, end: true, refresh: false, resolveInvitation: false, join: false, leave: false, observe: false, queue: false,
 });
 const CommandPolicy = Object.freeze({ maximumPendingCommands: 16, emptyCount: 0, commandCount: 1,
   completedRequestLimit: 64, firstPosition: 0, createOperation: 'create', endOperation: 'end', refreshOperation: 'refresh',
-  joinOperation: 'join', leaveOperation: 'leave', refreshCurrentOperation: 'refresh-current' });
+  joinOperation: 'join', leaveOperation: 'leave', refreshCurrentOperation: 'refresh-current', addQueueOperation: 'add-queue' });
 
 interface SessionOwnership {
   readonly accountIdentifier: string;
@@ -18,6 +20,8 @@ interface SessionOwnership {
   readonly operations: Map<string, { readonly operation: string; readonly result: Promise<JamCommandResult>; completed: boolean }>;
   pending: number;
   tail: Promise<unknown>;
+  readonly queue: JamQueueProtocol | null;
+  queueOutcomeUnknown: boolean;
 }
 
 export class JamSessionClient implements ExternalStore<JamSnapshot> {
@@ -25,7 +29,8 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
     return Object.freeze({ ...VerifiedJamCapabilities, refresh: this.ownership?.protocol.readCurrent !== undefined
       || this.ownership?.protocol.readCurrentAccount !== undefined,
       join: this.experimentalMembership && this.ownership?.protocol.join !== undefined,
-      leave: this.experimentalMembership && this.ownership?.protocol.leave !== undefined });
+      leave: this.experimentalMembership && this.ownership?.protocol.leave !== undefined,
+      queue: this.ownership?.queue !== undefined && this.ownership.queue !== null });
   }
   private ownership: SessionOwnership | null = null;
   private invitation: JamInvitation | null = null;
@@ -42,11 +47,11 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
     return () => { this.listeners.delete(listener); };
   };
 
-  attachAccount(accountIdentifier: string, protocol: JamProtocol): void {
+  attachAccount(accountIdentifier: string, protocol: JamProtocol, queue: JamQueueProtocol | null = null): void {
     if (!accountIdentifier.trim()) throw new IntegrationFailure(IntegrationFailureCode.InvalidInput);
     this.detachAccount();
     this.ownership = { accountIdentifier, protocol, cancellation: new AbortController(), operations: new Map(),
-      pending: CommandPolicy.emptyCount, tail: Promise.resolve() };
+      pending: CommandPolicy.emptyCount, tail: Promise.resolve(), queue, queueOutcomeUnknown: false };
     this.publish({ accountIdentifier, status: JamConnectionStatus.Ready, session: null, failure: null });
   }
 
@@ -113,6 +118,31 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
       this.invitation = null;
       this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session: null, failure: null });
+    });
+  }
+
+  addToQueue(spotifyTrackIdentifier: string, requestIdentifier: string): Promise<JamCommandResult> {
+    try { validateSpotifyQueueTrack(spotifyTrackIdentifier); }
+    catch { return Promise.resolve(this.rejected(IntegrationFailureCode.InvalidInput)); }
+    const expectedSession = this.snapshot.session;
+    const operation = JSON.stringify([CommandPolicy.addQueueOperation, spotifyTrackIdentifier]);
+    return this.submit(requestIdentifier, operation, async ownership => {
+      if (!ownership.queue) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      if (ownership.queueOutcomeUnknown) throw new IntegrationFailure(IntegrationFailureCode.UnknownOutcome);
+      const session = this.snapshot.session;
+      if (!session || session.identifier !== expectedSession?.identifier
+        || session.hostDeviceIdentifier !== expectedSession.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      if (!session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      if (!session.active || !session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      try {
+        await withCancellation(ownership.queue.addToQueue(spotifyTrackIdentifier, session.hostDeviceIdentifier,
+          ownership.cancellation.signal), ownership.cancellation.signal);
+      } catch (failure) {
+        if (failureCode(failure) === IntegrationFailureCode.UnknownOutcome) ownership.queueOutcomeUnknown = true;
+        throw failure;
+      }
+      if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      this.publish({ ...this.snapshot, status: JamConnectionStatus.Ready, failure: null });
     });
   }
 

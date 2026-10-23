@@ -1,6 +1,9 @@
 export * from '../contracts/catalog';
+export * from '../contracts/authentication';
+export * from './authentication/SpotifyLoginSession';
 export * from '../contracts/network';
 export * from '../contracts/session';
+export * from '../contracts/queue';
 export * from './SpotifyJamRuntime';
 export * from './catalog/CandidateRanker';
 export * from './catalog/MemoryAssociationStore';
@@ -17,3 +20,5 @@ export * from './network/SpotifyCredentialSession';
 export * from './network/SpotifyRequestClient';
 export * from './session/JamSessionClient';
 export * from './session/SpotifyHttpJamProtocol';
+export * from './session/SpotifyWebQueueProtocol';
+export * from './session/SpotifyQueueTrack';

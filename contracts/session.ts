@@ -10,6 +10,7 @@ export interface JamSession {
   readonly ownedByCurrentAccount: boolean;
   readonly active: boolean;
   readonly participants: readonly JamParticipant[];
+  readonly hostDeviceIdentifier?: string;
 }
 
 export interface JamInvitation {

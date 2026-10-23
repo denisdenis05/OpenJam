@@ -1,4 +1,48 @@
+# Browser login and hosted queue chapter — 2026-10-23
+
+Added `SpotifyLoginProvider` and `SpotifyLoginSession`: injected PKCE proof/browser,
+validated immutable client/callback/scopes, exact state/code checks, fixed HTTPS
+code exchange, authenticated account resolution, in-memory credentials and shared
+refresh-token renewal. Logout/cancellation reject uncooperative late collaborators;
+refresh caller cancellation leaves other renewal callers intact. Mobile Android
+provides SecureRandom/SHA-256 and opens Spotify through its existing browser.
+No password collection or client secret is implemented. See LOGIN.md.
+
+Added form-body transport support and dedicated forwarding coverage. Login has
+23 dedicated tests; hosted queue has 28. Final `npm test` passed 214 cases across
+12 files with source checking and strict compilation. Mobile passed 87 Node and
+15 rendered-screen cases, full app TypeScript and three Android proof-key tests.
+No registered client ID was supplied: real OAuth callback completion, private Jam
+OAuth admission and host queue propagation remain unverified. The mobile APK
+is the reviewable test vehicle, not evidence of device/runtime success.
+
+The mobile flow exposes login → create/share (or experimental join) → host queue.
+Existing translation and ambiguity handling precede queue submission for callers
+using local catalog records. The personal-test screen accepts selected Spotify
+track references. No shared player/audio bridge was added.
+
+Resume: configure a registered public client ID and accepted callback; verify
+login and private passive membership first, then owned create/share and known-host
+queue on a device. Cross-account joins and queue observation require a second
+controlled account. Do not substitute desktop credentials when OAuth fails.
+
 # Spotify library progress
+
+## Hosted queue request adapter
+
+Added `JamQueueProtocol`, `SpotifyWebQueueProtocol`, optional host device decoding,
+runtime `enableHostedQueue`/adapter injection and serialized `sessions.addToQueue`.
+The adapter uses the documented account playback-queue POST with an explicit
+actual Jam host. Guest/inactive/unknown-host targets are rejected. Unknown queue
+outcomes retain an account-lifetime queue fence that membership refresh cannot
+clear. Base verified queue capability remains false; enabled capability means
+configured request availability. See HOSTED_QUEUE.md for prerequisites and limits.
+
+Twenty-eight dedicated queue tests passed in the full library suite. A scoped
+live host-field read confirmed that creating an owned active Jam can return an
+empty host identifier; the temporary Jam was cleaned up. No live queue mutation
+or guest propagation was tested. Final aggregate counts include concurrent login
+work and are recorded by the coordinating chapter.
 
 Updated 2026-10-22. The user approved the library plan and required the project's
 streaming-service-quality skill for implementation. This repository is separate
@@ -118,10 +162,9 @@ user approval before implementation.
    implementation. Do not claim guest join/leave, invitation-info lookup or
    synchronized playback has been verified. Public short-link resolution was
    verified separately using controlled own-session share pages.
-2. Establish mobile credential acquisition/renewal independently of desktop
-   debugging. The mobile test connection accepts a token into memory; browser
-   login/renewal, cookie extraction, credential relay and a companion dependency
-   were not added.
+2. Validate the implemented PKCE login/renewal with a registered client ID.
+   The mobile screen now opens browser authorization; no successful live OAuth
+   callback or private Jam access with those credentials is established.
 3. Resolve the info lookup failure and inspect the real session subscription
    connection/envelopes. Keep unsupported capability flags false until validated.
 4. Validate real catalog access after rate limits permit and run cross-catalog

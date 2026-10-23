@@ -2,6 +2,8 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Browser authorization, proof validation, exact callback/state checks, consent denial, exchange validation, refresh rotation/single flight, expiry, immutable configuration and cancellation/logout races | `tests/spotify-login.test.mjs` |
+| HTTP form-body forwarding for the token endpoint | `tests/network.test.mjs` |
 | Source-standard enforcement and negative fixtures | `tests/architecture.test.mjs` |
 | Minimal schema, duration/codes, version conflicts, Unicode, artist sets, ambiguity, duplicate candidates, availability and bounded ranking | `tests/catalog-matching.test.mjs` |
 | Both translation directions, confirmation, invalidation, market isolation, many-to-one identity, missing sources, typed failures and cancellation | `tests/catalog-matching.test.mjs` |
@@ -15,6 +17,7 @@
 | Pacing, timer cancellation, deadlines, malformed JSON and fetch redirect/cookie policy | `tests/network.test.mjs` |
 | Jam creation/deletion/status protocol, absent session and malformed success | `tests/jam-session.test.mjs` |
 | Passive account-current JSON/404 decoding, endpoint trust, cancellation, malformed responses, refresh capability, private copied snapshots, deduplication, stale accounts and uncertain-outcome reconciliation | `tests/jam-current-account.test.mjs` |
+| Explicit hosted queue request encoding/validation, host decoding, disabled/guest/inactive/missing-host rejection, replay/conflicts, ordered membership changes, cancellation, account fences, bounds and unknown queue outcomes surviving membership refresh | `tests/hosted-queue.test.mjs` |
 | Commands, request deduplication/conflicts, host permission, account switch, detach, backpressure and subscriber ownership | `tests/jam-session.test.mjs` |
 | Unknown outcomes, queued-command fencing and passive reconciliation | `tests/jam-session.test.mjs` |
 | Immutable private snapshots, explicit invitation access and capability truthfulness | `tests/jam-session.test.mjs` |

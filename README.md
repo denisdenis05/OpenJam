@@ -40,6 +40,14 @@ Playing together is planned separately. Read the
 pushes and a stale Connect snapshot were observed; remote playback synchronization
 remains unverified and is not implemented.
 
+## Browser login
+
+[LOGIN.md](LOGIN.md) describes the library-owned PKCE flow and injected platform
+boundaries. Android mobile now opens Spotify sign-in and keeps renewable
+credentials in memory. A registered public client ID and exact callback are
+required; no client secret or pasted access token is needed. Live OAuth access
+to the private Jam routes has not yet been established.
+
 ## Experimental membership
 
 Set the runtime dependency `experimentalMembership: true` to enable reconstructed
@@ -61,6 +69,11 @@ Cross-account live guest admission remains unverified. Remote mode does not
 implement queue updates, Spotify audio playback or synchronization with our player.
 
 ## Composition
+
+Optional host queue requests are described in [HOSTED_QUEUE.md](HOSTED_QUEUE.md).
+They require an owned active Jam with a known Spotify host, suitable OAuth
+permissions and explicit `enableHostedQueue` composition. Acceptance does not
+claim shared queue observation or playback synchronization.
 
 Construct `SpotifyJamRuntime` with the account identifier, credential provider,
 endpoint resolver, recording catalog, association store, HTTP executor, and clock.

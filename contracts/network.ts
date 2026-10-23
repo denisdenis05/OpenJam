@@ -19,6 +19,7 @@ export interface HttpRequest {
   readonly method: string;
   readonly headers: Readonly<Record<string, string>>;
   readonly cancellation: AbortSignal;
+  readonly body?: string;
 }
 
 export interface HttpResponse {

@@ -1,3 +1,20 @@
+# Login and hosted queue validation — 2026-10-23
+
+Library `npm test` passed 214 deterministic cases across twelve files, including
+23 login cases, 28 hosted-queue cases and the dedicated form-body transport case.
+The command includes source checks and strict compilation. Mobile Spotify tests
+passed 87 Node cases and 15 screen cases; full app TypeScript checking passed.
+Android proof-key unit tests passed three cases. Final package dry-run review
+passed with 74 files including login/queue implementations, contracts and docs.
+The first dry-run hit a read-only default npm cache; the approved rerun used
+`--cache /tmp/spotify-jam-npm-cache` and did not publish anything. Earlier chapter results follow.
+
+No registered Spotify developer client ID was supplied. Real browser authorization,
+private Jam access with OAuth credentials, live enqueue and shared queue
+propagation remain unverified. The controlled host-field probe created/deleted
+only its own temporary Jam, observed an empty host target and changed no queue or
+playback. Native packaging does not establish device behavior.
+
 # Validation
 
 Experimental membership follow-up: `npm run check`, `npm test`, and

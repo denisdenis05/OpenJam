@@ -26,7 +26,8 @@ export class FetchHttpExecutor implements HttpExecutor {
     const stopDeadline = this.scheduler.schedule(this.deadlineMilliseconds, () => { deadlineReached = true; controller.abort(); });
     try {
       const response = await fetch(request.address, { method: request.method, headers: request.headers,
-        signal: controller.signal, redirect: HttpPolicy.redirectPolicy, credentials: HttpPolicy.credentialPolicy });
+        signal: controller.signal, redirect: HttpPolicy.redirectPolicy, credentials: HttpPolicy.credentialPolicy,
+        ...(request.body === undefined ? {} : { body: request.body }) });
       const declaredLength = response.headers.get(HttpPolicy.contentLengthHeader);
       if (declaredLength !== null && Number(declaredLength) > HttpPolicy.maximumResponseCharacters) {
         await response.body?.cancel();

@@ -1,5 +1,6 @@
 import type { AssociationStore, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
 import type { Clock, HttpExecutor, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
+import type { JamQueueProtocol } from '../contracts/queue';
 import { CandidateRanker } from './catalog/CandidateRanker';
 import { SpotifyWebCatalog } from './catalog/SpotifyWebCatalog';
 import { TrackTranslator } from './catalog/TrackTranslator';
@@ -8,6 +9,7 @@ import { SpotifyCredentialSession } from './network/SpotifyCredentialSession';
 import { SpotifyRequestClient } from './network/SpotifyRequestClient';
 import { JamSessionClient } from './session/JamSessionClient';
 import { SpotifyHttpJamProtocol } from './session/SpotifyHttpJamProtocol';
+import { SpotifyWebQueueProtocol } from './session/SpotifyWebQueueProtocol';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
@@ -20,6 +22,8 @@ export interface SpotifyJamDependencies {
   readonly matchingPolicy?: MatchingPolicy;
   readonly onSubscriberFailure?: () => void;
   readonly experimentalMembership?: boolean;
+  readonly enableHostedQueue?: boolean;
+  readonly queueProtocol?: JamQueueProtocol;
 }
 
 export class SpotifyJamRuntime {
@@ -35,7 +39,8 @@ export class SpotifyJamRuntime {
       new CandidateRanker(dependencies.matchingPolicy), dependencies.associations);
     this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);
     this.sessions.attachAccount(dependencies.accountIdentifier,
-      new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership));
+      new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership),
+      dependencies.enableHostedQueue ? dependencies.queueProtocol ?? new SpotifyWebQueueProtocol(requests) : null);
   }
 
   async translateToSpotify(recordingIdentifier: string, market: string, cancellation: AbortSignal): Promise<MatchResult<SpotifySong>> {

@@ -11,7 +11,7 @@ import { SpotifyRequestClient } from '../network/SpotifyRequestClient';
 export const JamHttpProtocol = Object.freeze({
   createPath: '/social-connect/v2/sessions/current_or_new?activate=true',
   currentAccountPath: '/social-connect/v2/sessions/current',
-  deletePrefix: '/social-connect/v3/sessions/', emptyPath: '/', emptyText: '', booleanType: 'boolean',
+  deletePrefix: '/social-connect/v3/sessions/', emptyPath: '/', emptyText: '', booleanType: 'boolean', stringType: 'string',
   devicePrefix: '/social-connect/v2/devices/', deviceStatusSuffix: '/jam_status',
   joinPrefix: '/social-connect/v2/sessions/join/', leaveSuffix: '/leave', queryPrefix: '?',
   playbackControlParameter: 'playback_control', remotePlaybackControl: 'listen_and_control', controlPlaybackControl: 'control',
@@ -109,8 +109,14 @@ export class SpotifyHttpJamProtocol implements JamProtocol {
       const participant = objectValue(value);
       return Object.freeze({ identifier: textValue(participant.id), displayName: textValue(participant.display_name ?? participant.username) });
     });
+    const hostDeviceIdentifier = response.hostActiveDeviceId;
+    if (hostDeviceIdentifier !== undefined && hostDeviceIdentifier !== null && typeof hostDeviceIdentifier !== JamHttpProtocol.stringType) {
+      throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+    }
     const session = Object.freeze({ identifier: textValue(response.session_id), ownedByCurrentAccount: response.is_session_owner as boolean,
-      active: response.active as boolean, participants: Object.freeze(participants) });
+      active: response.active as boolean, participants: Object.freeze(participants),
+      ...(typeof hostDeviceIdentifier === JamHttpProtocol.stringType && (hostDeviceIdentifier as string).trim()
+        ? { hostDeviceIdentifier: hostDeviceIdentifier as string } : {}) });
     const joinToken = response.join_session_token === undefined ? null : textValue(response.join_session_token);
     const invitationAddress = response.join_session_uri === undefined ? null : textValue(response.join_session_uri);
     const invitation = joinToken !== null && invitationAddress !== null
