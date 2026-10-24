@@ -1,7 +1,11 @@
 # Playing together: proposed implementation plan
 
 Prepared 2026-10-22 after protocol investigation and independent agent review.
-This is a plan for approval. No production synchronization changes were made.
+The user subsequently authorized implementation. Foreground host following,
+the normalized synchronization core and Android/iOS native authority leases are
+implemented as of 2026-10-24. HOSTED_PLAYBACK.md and SHARED_PLAYBACK.md describe
+their actual scope. Private guest participation, remote shared-control routing,
+app-led clock hosting and continuous background transport remain open.
 The project streaming-service-quality skill applies to all contracts, code,
 native integrations, examples, tests and chapter documentation.
 

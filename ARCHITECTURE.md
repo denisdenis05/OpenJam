@@ -83,6 +83,8 @@ strings in checker tests are negative fixtures, not executable library examples.
 The library contains no native bridge and does not change minimum Android or iOS
 versions. The mobile composition owns native proof generation and credential
 storage. Host queue submission/observation and foreground membership recovery
-are implemented; guest queue routing, push subscriptions, native background
-ownership and synchronized Spotify playback require verified protocols and
-platform tests. See DEVELOPMENT_SEQUENCE.md for implementation and live gates.
+are implemented. Normalized playback synchronization and foreground host following
+now compose the actual native player through exclusive leases. Guest queue/playback
+protocols, remote control routing, continuous background transport and measured
+audio alignment remain open. See DEVELOPMENT_SEQUENCE.md for implementation and
+live gates.

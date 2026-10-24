@@ -1,4 +1,4 @@
-import type { AssociationStore, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
+import type { AssociationStore, CatalogSong, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
 import type { Clock, HttpExecutor, Scheduler, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
 import type { HostedQueueReader } from '../contracts/hostedQueue';
 import type { JamQueueProtocol } from '../contracts/queue';
@@ -15,6 +15,14 @@ import { RecordingQueueCoordinator } from './session/RecordingQueueCoordinator';
 import { HostedQueueObserver } from './observation/HostedQueueObserver';
 import { SpotifyWebHostedQueueReader } from './observation/SpotifyWebHostedQueueReader';
 import { JamMembershipObserver } from './observation/JamMembershipObserver';
+import { SpotifyWebPlaybackReader } from './playback/SpotifyWebPlaybackReader';
+import type { SharedPlaybackClock, SharedPlaybackIdentity } from '../contracts/sharedPlayback';
+import type { HostedPlaybackSample } from '../contracts/hostedPlayback';
+import { IntegrationFailureCode } from '../contracts/network';
+import { JamConnectionStatus } from '../contracts/session';
+import { checkCancellation, failureCode, IntegrationFailure } from './network/IntegrationFailure';
+import { copySong } from './catalog/SongIdentity';
+import { samePlaybackIdentity } from './playback/SharedPlaybackTiming';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
@@ -34,6 +42,7 @@ export interface SpotifyJamDependencies {
   readonly scheduler?: Scheduler;
   readonly enableMembershipObservation?: boolean;
   readonly membershipRequestIdentifiers?: () => string;
+  readonly playbackClock?: SharedPlaybackClock;
 }
 
 export class SpotifyJamRuntime {
@@ -44,10 +53,16 @@ export class SpotifyJamRuntime {
   private readonly lifetime = new AbortController();
   private readonly credentials: SpotifyCredentialSession;
   private readonly translator: TrackTranslator;
+  private readonly playbackReader: SpotifyWebPlaybackReader | null;
+  private readonly recordings: RecordingCatalog;
+  private readonly accountIdentifier: string;
 
   constructor(dependencies: SpotifyJamDependencies) {
+    this.accountIdentifier = dependencies.accountIdentifier;
+    this.recordings = dependencies.recordings;
     this.credentials = new SpotifyCredentialSession(dependencies.accountIdentifier, dependencies.credentials, dependencies.clock);
     const requests = new SpotifyRequestClient(dependencies.requests, this.credentials);
+    this.playbackReader = dependencies.playbackClock ? new SpotifyWebPlaybackReader(requests, dependencies.playbackClock) : null;
     this.translator = new TrackTranslator(dependencies.recordings, new SpotifyWebCatalog(requests),
       new CandidateRanker(dependencies.matchingPolicy), dependencies.associations);
     this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);
@@ -67,6 +82,18 @@ export class SpotifyJamRuntime {
     finally { scope.dispose(); }
   }
 
+  async lookupRecording(recordingIdentifier: string, cancellation: AbortSignal): Promise<CatalogSong | null> {
+    const scope = combineCancellation(this.lifetime.signal, cancellation);
+    try {
+      checkCancellation(scope.signal);
+      const song = await this.recordings.lookup(recordingIdentifier, scope.signal);
+      checkCancellation(scope.signal);
+      if (song && song.identifier !== recordingIdentifier) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+      return song ? copySong(song) : null;
+    } catch (failure) { throw new IntegrationFailure(failureCode(failure));
+    } finally { scope.dispose(); }
+  }
+
   async translateToRecording(spotifyIdentifier: string, market: string, cancellation: AbortSignal): Promise<MatchResult> {
     const scope = combineCancellation(this.lifetime.signal, cancellation);
     try { return await this.translator.toRecording(spotifyIdentifier, market, scope.signal); }
@@ -77,6 +104,35 @@ export class SpotifyJamRuntime {
     const scope = combineCancellation(this.lifetime.signal, cancellation);
     try { await this.translator.confirm(recordingIdentifier, spotifyIdentifier, market, scope.signal); }
     finally { scope.dispose(); }
+  }
+
+  async readHostedPlayback(cancellation: AbortSignal): Promise<HostedPlaybackSample> {
+    const scope = combineCancellation(this.lifetime.signal, cancellation);
+    try {
+      checkCancellation(scope.signal);
+      if (!this.playbackReader) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      const identity = this.hostedPlaybackIdentity();
+      const sample = await this.playbackReader.read(identity.authorityIdentifier, scope.signal);
+      checkCancellation(scope.signal);
+      let currentIdentity: SharedPlaybackIdentity;
+      try { currentIdentity = this.hostedPlaybackIdentity(); } catch { throw new IntegrationFailure(IntegrationFailureCode.Superseded); }
+      if (!samePlaybackIdentity(identity, currentIdentity)) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      return Object.freeze({ ...identity, ...sample });
+    } finally { scope.dispose(); }
+  }
+
+  private hostedPlaybackIdentity(): SharedPlaybackIdentity {
+    const snapshot = this.sessions.getSnapshot();
+    if (!snapshot.accountIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+    if (snapshot.accountIdentifier !== this.accountIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+    if (!snapshot.session) throw new IntegrationFailure(IntegrationFailureCode.NotFound);
+    if (!snapshot.session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+    if (!snapshot.session.active || !snapshot.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+    if (snapshot.status !== JamConnectionStatus.Ready && snapshot.status !== JamConnectionStatus.Operating) {
+      throw new IntegrationFailure(snapshot.failure ?? IntegrationFailureCode.UnknownOutcome);
+    }
+    return Object.freeze({ accountIdentifier: snapshot.accountIdentifier, sessionIdentifier: snapshot.session.identifier,
+      authorityIdentifier: snapshot.session.hostDeviceIdentifier });
   }
 
   dispose(): void {

@@ -1,3 +1,18 @@
+# Foreground host follower validation — 2026-10-24
+
+`npm test` passed 412 deterministic cases across 19 files, including 41 shared
+playback, 11 clock-mapping and 18 hosted-playback/runtime cases. Source checks and
+strict compilation ran in that command. `npm pack --dry-run --json --cache
+/tmp/spotify-jam-npm-cache` reviewed 113 files, including normalized contracts,
+compiled playback implementations and both new playback documents. Nothing was
+published. Native/mobile results are in their owning progress files.
+
+These are deterministic source/host results. The account playback source is
+implemented against the documented endpoint; no real OAuth client admission,
+private guest stream, physical-device audio or measured alignment is claimed.
+The live desktop debug endpoint was unavailable on recheck. No desktop playback,
+queue or session was changed during this chapter.
+
 # Saved login validation — 2026-10-23
 
 Library npm test passed 342 deterministic cases across 16 files, including 28

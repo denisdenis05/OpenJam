@@ -2,6 +2,9 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Identity/sequence fencing, paused preparation, latest-target position, local/remote buffering, drift correction, freshness/uncertainty, ambiguous/missing media, duration hold, cancellation, late output, release ordering and failed play compensation | `tests/shared-playback.test.mjs` |
+| Monotonic source-clock mapping, interval uncertainty, oscillator allowance, sample bounds/order/expiry, inconsistent clocks, bounded retention and reset | `tests/shared-clock.test.mjs` |
+| Public playback decoding, actual host binding, request timing, old paused timestamps, malformed/unavailable data, cancellation, runtime ownership and sanitized local lookup | `tests/hosted-playback.test.mjs` |
 | Browser authorization, proof validation, exact callback/state checks, consent denial, exchange validation, refresh rotation/single flight, expiry, immutable configuration and cancellation/logout races | `tests/spotify-login.test.mjs` |
 | HTTP form-body forwarding for the token endpoint | `tests/network.test.mjs` |
 | App recording preparation, explicit ambiguous selection, validation, immutable snapshots/session identity, cancellation before dispatch, receipt retention after dispatch, duplicate submission, confirmation failure and account/host retirement | `tests/recording-queue.test.mjs` |

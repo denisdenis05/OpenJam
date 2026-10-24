@@ -1,3 +1,44 @@
+# Foreground host follower and native authority — 2026-10-24
+
+Implemented a documented Web API playback reader bound to the actual owned Jam
+host. Runtime reads reject unrelated devices/guests, late ownership changes and
+unsupported media. A local monotonic request interval anchors progress; the
+response's last-change Unix timestamp is metadata. Runtime local-recording
+lookup uses the existing injected catalog with copying and sanitized failures.
+
+Added SharedPlaybackSynchronizer with injected matching/output/clock/scheduler,
+identity/sequence fences, paused preparation, latest-position application,
+buffering/readiness, bounded freshness/uncertainty, drift correction, duration
+hold, cancellation and acknowledged native release. Added bounded source-clock
+exchange mapping; the host source uses request timing rather than assuming a
+private clock exchange. Execution IDs and sequences are local fences.
+
+The mobile action explicitly replaces the queue and follows only an owned host.
+Matching is cached for the current track/country; unavailable choices hold audio.
+App/Spotify account or Jam/host replacement and backgrounding stop following.
+User pause suspends the native lease and ends following; cleanup remains pending
+until acknowledgement. Native Android/iOS leases reject ordinary playback,
+independent advance/modes and stale commands, and pause on a five-second native
+renewal deadline. Expired leases can be reclaimed after JavaScript restart.
+
+Dedicated mappings are in FEATURES.md, HOSTED_PLAYBACK.md and SHARED_PLAYBACK.md.
+Final validation and package results follow in VALIDATION.md and the mobile
+progress file. No live OAuth/client admission, cross-account guest playback,
+physical OS storage, audible alignment or continuous background result is claimed.
+
+Remaining implementation: private credential acquisition if OAuth is rejected;
+verified guest queue/playback transport; shared permission/control routing;
+authoritative unknown-write reconciliation; app-led Spotify hosting clock; and
+continuous native background network/renewal. The installed debug endpoint was
+rechecked and remains unavailable. No client ID or second controlled client was
+supplied. No desktop process, queue or playback was changed for these checks.
+
+Review regressions now cover malformed retired-scope events, failure followed by
+late recording resolution, serialized compensation for dispatched play, replacement
+accepted during unavailable notification, and reentrant attachment. Failed normal
+work cannot resume playback or replace a failed snapshot. Native review preserves
+request deduplication across authority changes while account reset still clears it.
+
 # Saved login and iOS boundary chapter — 2026-10-23
 
 Added optional account-owned secure credential persistence and restore to
