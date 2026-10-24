@@ -10,6 +10,7 @@ export * from './session/RecordingQueueCoordinator';
 export * from '../contracts/authentication';
 export * from './authentication/SpotifyLoginSession';
 export { loadSpotifyLoginConfiguration } from './authentication/SpotifySavedLogin';
+export { loadSpotifyAuthorizationConfiguration } from './authentication/SpotifyPendingAuthorization';
 export * from './authentication/SpotifyCredentialOwnership';
 export * from '../contracts/sharedPlayback';
 export * from './playback/SharedPlaybackTiming';

@@ -1,3 +1,18 @@
+# Android login recovery validation — 2026-10-24
+
+`npm test` passed 444 deterministic cases across 20 files, including 32 pending
+transaction cases. Source checking and strict compilation ran in that command.
+Package dry-run and mobile/native results are recorded below and in the owning
+mobile progress file. No physical callback delivery or real OAuth result is
+claimed. The exact branch reported on the phone remains unobserved.
+
+Package dry-run reviewed 115 files. Mobile passed 208 service and 50 UI/platform
+cases, full TypeScript compilation, 320 player-mobile cases and seven integration
+checks. Android release bundling, assembly and all three native proof tests passed.
+The APK signature, ARM64 libraries and embedded Hermes recovery markers were
+verified. No ADB device was available. See the mobile progress file for commands
+and artifact details.
+
 # Foreground host follower validation — 2026-10-24
 
 `npm test` passed 412 deterministic cases across 19 files, including 41 shared

@@ -4,6 +4,7 @@ export interface SpotifyLoginProvider extends SpotifyCredentialProvider {
   login(cancellation: AbortSignal): Promise<SpotifyCredentials>;
   logout(): void | Promise<void>;
   restore?(cancellation: AbortSignal): Promise<SpotifyCredentials>;
+  resumeAuthorization?(callbackAddress: string, cancellation: AbortSignal): Promise<SpotifyCredentials>;
   dispose?(): void;
 }
 
@@ -35,6 +36,17 @@ export interface SpotifyLoginDependencies {
   readonly clock: Clock;
   readonly resolveAccount: (accessToken: string, cancellation: AbortSignal) => Promise<string>;
   readonly credentialStore?: SpotifyLoginCredentialStore;
+  readonly authorizationStore?: SpotifyLoginCredentialStore;
+  readonly onProgress?: (stage: SpotifyLoginStage) => void;
+}
+
+export enum SpotifyLoginStage {
+  Preparing = 'preparing',
+  Authorizing = 'authorizing',
+  Exchanging = 'exchanging',
+  Verifying = 'verifying',
+  Saving = 'saving',
+  Complete = 'complete',
 }
 
 export interface SpotifyLoginCredentialStore {

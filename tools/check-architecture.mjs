@@ -11,6 +11,11 @@ const IdentifierComponentSeparator = /(?=[A-Z])|_/;
 const ProhibitedIdentifierComponents = new Set(Object.values({ context: 'ctx', request: 'req', response: 'res', parameters: 'params', configuration: 'config', milliseconds: 'ms', identifier: 'id', identifiers: 'ids', function: 'fn', arguments: 'args', callback: 'cb', temporary: 'tmp', index: 'idx', authentication: 'auth', dataTransferObject: 'dto', applicationProgrammingInterface: 'api', randomNumberGenerator: 'rng' }));
 const CheckedDirectories = Object.values({ implementation: 'src', contracts: 'contracts', unitTests: 'tests', tools: 'tools' });
 const IntegrationSources = Object.values({
+  mobileAuthorizationStartup: '../StreamingServiceMobile/src/services/spotify/SpotifyAuthorizationStartup.ts',
+  mobileAuthorizationNavigation: '../StreamingServiceMobile/src/services/spotify/SpotifyAuthorizationNavigation.ts',
+  mobileAuthorizationRecoveryTests: '../StreamingServiceMobile/tools/spotify-authorization-recovery.test.cjs',
+  mobileUrlFixture: '../StreamingServiceMobile/tools/fixtures/spotify-url.cjs',
+  mobileLoginPlatformTests: '../StreamingServiceMobile/tools/spotify-login-platform.test.ts',
   mobileNativePlaybackOutput: '../StreamingServiceMobile/src/services/spotify/SpotifyNativePlaybackOutput.ts',
   mobilePlaybackFollowerStore: '../StreamingServiceMobile/src/services/spotify/SpotifyPlaybackFollowerStore.ts',
   mobileSharedPlaybackScreen: '../StreamingServiceMobile/src/pages/SpotifyJam/SpotifySharedPlayback.render.tsx',

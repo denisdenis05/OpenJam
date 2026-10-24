@@ -2,6 +2,10 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Pending PKCE persistence before browser opening, secure shape, consume acknowledgement, restart resume, expiry, stale return then valid recovery, replay/configuration/malformed input, disposal/logout/storage races and isolated progress notifications | `tests/pending-authorization.test.mjs` |
+| Android callback/dismissal ordering, initial intent recovery, state isolation, cancellation and cleanup; cold account/restore ordering and one-time navigation | Mobile `tools/spotify-authorization-recovery.test.cjs` |
+| Android custom-tab capture and initial intent fallback; iOS native authentication session | Mobile `tools/spotify-login-platform.test.ts` |
+| Login phase/error preservation across remounts, explicit interruption/cancellation and separate device-only pending proof storage | Mobile `tools/spotify-screen.test.tsx`, `tools/spotify-secure-platform.test.ts` |
 | Identity/sequence fencing, paused preparation, latest-target position, local/remote buffering, drift correction, freshness/uncertainty, ambiguous/missing media, duration hold, cancellation, late output, release ordering and failed play compensation | `tests/shared-playback.test.mjs` |
 | Monotonic source-clock mapping, interval uncertainty, oscillator allowance, sample bounds/order/expiry, inconsistent clocks, bounded retention and reset | `tests/shared-clock.test.mjs` |
 | Public playback decoding, actual host binding, request timing, old paused timestamps, malformed/unavailable data, cancellation, runtime ownership and sanitized local lookup | `tests/hosted-playback.test.mjs` |

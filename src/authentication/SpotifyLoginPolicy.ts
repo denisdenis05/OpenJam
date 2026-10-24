@@ -10,4 +10,5 @@ export const SpotifyLoginPolicy = Object.freeze({
   secureProtocol: 'https:', insecureProtocol: 'http:', loopbackIpv4: '127.0.0.1', loopbackIpv6: '[::1]',
   forbiddenProtocols: Object.values({ script: 'javascript:', data: 'data:', file: 'file:', transfer: 'ftp:' }),
   codeParameter: 'code', stateParameter: 'state', errorParameter: 'error', abortEvent: 'abort',
+  maximumCallbackCharacters: 16384, maximumCodeCharacters: 4096, codeWhitespacePattern: /\s/,
 });

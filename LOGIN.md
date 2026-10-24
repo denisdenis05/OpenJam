@@ -14,9 +14,39 @@ and unpadded URL-safe Base64. The library validates the supplied proof shape.
 The mobile callback is `streamingservicespotify://callback`, registered in both
 Android and iOS. Spotify must also accept it in the developer application's
 redirect allowlist. Public profile verification uses `/v1/me`, preferring
-`account_id` with `id` compatibility. A registered client ID was not supplied for
-this work. Real OAuth admission to private Jam routes is still unverified;
+`account_id` with `id` compatibility. A public client ID was supplied with the Android return-failure report.
+Real OAuth admission to private Jam routes is still unverified;
 desktop research credentials are not substituted when OAuth access fails.
+
+## Pending browser authorization
+
+Supply a separate secure `authorizationStore` for process-restart recovery.
+It contains versioned public configuration, verifier/challenge/state and creation
+time, saved before browser launch. Unlike the saved refresh grant, this short-lived
+record contains proof material. Its lifetime is ten minutes. Neither store saves
+an authorization code or callback URL. Use the same account ownership abstraction
+with separate native service namespaces for these two record types.
+
+`loadSpotifyAuthorizationConfiguration` returns only public configuration.
+Create the provider with that configuration and call `resumeAuthorization` with
+the current callback. Exact redirect/state validation and expiry checks precede
+consumption; deletion must acknowledge before code exchange. Stale, foreign or
+malformed callbacks preserve the pending record; actual consent denial erases it.
+A consumed record cannot replay. Disposal preserves pending proof; logout clears
+both stores. Exchange is not retried if its outcome is unknown.
+
+Optional `onProgress` reports preparation, browser authorization, exchange,
+verification, saving and completion. Observer failures cannot interrupt login.
+Progress contains no callback or credential values.
+
+Android now captures Linking events before opening the custom tab. After browser
+dismissal it probes the current Activity intent during a bounded grace period.
+MainActivity updates its intent before forwarding the framework callback. The
+`onNewIntent` name and Intent parameter are Android framework requirements.
+Cold startup waits for the StreamingService account, resumes the saved transaction
+and opens the Jam screen once. The iOS adapter retains native openAuth behavior.
+Public login verifies only the Spotify profile; private service discovery happens
+when Jam operations need it. The screen preserves failed phases across remounts.
 
 ## Durable login
 

@@ -1,3 +1,31 @@
+# Android login return recovery — 2026-10-24
+
+The reported symptom was browser sign-in returning to the same login form with
+no error. A public client ID was supplied. The exact physical-device failure
+branch has not been captured. Review found an Android browser dismissal/callback
+race, stale Activity initial intents, process-local PKCE proof and screen remounts
+that could replace authentication errors with an empty restore result.
+
+Added optional secure pending authorization storage and resumeAuthorization.
+Proof/configuration are saved before opening the browser, expire after ten
+minutes and are consumed before exchange. Disposal preserves the transaction;
+logout erases both transaction and saved grant. Foreign/stale callback rejection
+preserves the current transaction. Codes and callback URLs are never persisted.
+Public configuration lookup exposes neither proof nor credentials. Login stages
+are observable without sensitive values.
+
+Mobile owns Android callback capture, bounded dismissal recovery and cold-start
+resume after app-account restoration. MainActivity updates its current intent
+before forwarding onNewIntent. The Android adapter uses the custom tab directly;
+iOS retains native openAuth. Pending proof and refresh grants use separate
+account-owned Keychain services. Profile-only login no longer depends on private
+service discovery. Failed login steps remain beside the button across remounts.
+
+Dedicated mappings are in FEATURES.md and LOGIN.md. Validation is recorded in
+VALIDATION.md and the mobile progress file. Real Spotify login, physical process
+recreation and OS credential storage remain device checks. This chapter does not
+establish private Jam admission or guest shared playback.
+
 # Foreground host follower and native authority — 2026-10-24
 
 Implemented a documented Web API playback reader bound to the actual owned Jam
