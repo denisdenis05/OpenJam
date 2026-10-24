@@ -1,4 +1,5 @@
-import { SpotifyLoginStage } from '../../contracts/authentication';
+import { SpotifyAuthorizationRedirectComparison, SpotifyLoginStage } from '../../contracts/authentication';
+import { compareSpotifyAuthorizationRedirect } from './SpotifyAuthorizationRedirect';
 import type { SpotifyLoginConfiguration, SpotifyLoginDependencies, SpotifyLoginProvider, SpotifyProofKey } from '../../contracts/authentication';
 import { HttpMethod, IntegrationFailureCode } from '../../contracts/network';
 import type { SpotifyCredentials } from '../../contracts/network';
@@ -256,7 +257,7 @@ export class SpotifyLoginSession implements SpotifyLoginProvider {
     let callback: URL;
     try { callback = new URL(address); } catch { throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse); }
     const expected = new URL(this.configuration.redirectAddress);
-    if (callback.protocol !== expected.protocol || callback.host !== expected.host || callback.pathname !== expected.pathname
+    if (compareSpotifyAuthorizationRedirect(callback, expected) !== SpotifyAuthorizationRedirectComparison.Matched
       || callback.username || callback.password || callback.hash
       || callback.searchParams.getAll(Policy.stateParameter).length !== SingleParameterCount
       || callback.searchParams.get(Policy.stateParameter) !== state) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);

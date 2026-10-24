@@ -1,6 +1,6 @@
 # Spotify login and saved credentials
 
-`SpotifyLoginSession` owns Authorization Code with PKCE, exact callback/state
+`SpotifyLoginSession` owns Authorization Code with PKCE, callback/state
 validation, code exchange, account verification, refresh renewal and restoration.
 It implements `SpotifyLoginProvider`. The runtime consumes its credential-provider
 interface; disposing a runtime does not end a remote Jam or forget a saved login.
@@ -18,6 +18,25 @@ redirect allowlist. Public profile verification uses `/v1/me`, preferring
 Real OAuth admission to private Jam routes is still unverified;
 desktop research credentials are not substituted when OAuth access fails.
 
+## Callback base comparison
+
+`compareSpotifyAuthorizationRedirect` compares parsed protocol, authority and
+path and reports the mismatched component. It compares an empty response path
+and `/` equally only for the same custom scheme with a nonempty authority. Other
+paths remain exact; network/file and opaque custom addresses do not gain this
+rule. The function does not validate state, code, credentials, fragments or size;
+login callers must continue those checks. Browser capture, startup recovery and
+library code extraction use the same comparison to avoid accepting a return in
+one layer only to reject it in another.
+
+The configured redirect is sent unchanged in both authorization and code exchange
+and remains unchanged in stored configuration. This response comparison does not
+change Spotify's registration requirements. See the official
+[authorization code parameters](https://developer.spotify.com/documentation/web-api/tutorials/code-flow)
+for the exact configured redirect requirement. The phone's combined mismatch
+status does not establish that a slash was added; new messages identify scheme,
+host or path if a mismatch remains. No callback values are shown or logged.
+
 ## Pending browser authorization
 
 Supply a separate secure `authorizationStore` for process-restart recovery.
@@ -29,7 +48,7 @@ with separate native service namespaces for these two record types.
 
 `loadSpotifyAuthorizationConfiguration` returns only public configuration.
 Create the provider with that configuration and call `resumeAuthorization` with
-the current callback. Exact redirect/state validation and expiry checks precede
+the current callback. Callback base/state validation and expiry checks precede
 consumption; deletion must acknowledge before code exchange. Stale, foreign or
 malformed callbacks preserve the pending record; actual consent denial erases it.
 A consumed record cannot replay. Disposal preserves pending proof; logout clears

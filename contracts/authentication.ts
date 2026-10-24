@@ -28,6 +28,16 @@ export interface SpotifyLoginBrowser {
   authorize(address: string, redirectAddress: string, cancellation: AbortSignal): Promise<string>;
 }
 
+export interface SpotifyAuthorizationRedirectAddress {
+  readonly protocol: string;
+  readonly host: string;
+  readonly pathname: string;
+}
+
+export enum SpotifyAuthorizationRedirectComparison {
+  Matched = 'matched', SchemeMismatch = 'scheme-mismatch', HostMismatch = 'host-mismatch', PathMismatch = 'path-mismatch',
+}
+
 export interface SpotifyLoginDependencies {
   readonly configuration: SpotifyLoginConfiguration;
   readonly proofKeys: SpotifyProofKeyGenerator;

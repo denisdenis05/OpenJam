@@ -1,3 +1,21 @@
+# Callback base comparison validation — 2026-10-24
+
+`npm test` passed 454 deterministic cases across 21 files, including seven shared
+redirect-comparison and 35 pending-authorization cases. Source checking and strict
+compilation ran in that command. Package dry-run reviewed 117 files; nothing was
+published. A transient old-module reproduction failed the new warm root-slash
+regression with invalid-response, as expected; current-source tests pass.
+
+Mobile passed 219 Node and 57 Jest cases and full TypeScript compilation. Native
+packaging evidence is recorded in the mobile progress file. Actual callback shape
+on the reporting phone and live OAuth remain unverified.
+
+Android release bundling, native unit-test task, assembly and signature checks
+passed. The unchanged callback-store and proof-key suites retain fifteen passing
+cases. The ARM64-only archive contains a Hermes bundle with the shared redirect
+comparison and specific diagnostic markers. No ADB device was connected; this is
+packaging evidence, not proof of the reporting phone's callback or live OAuth.
+
 # Android login recovery validation — 2026-10-24
 
 `npm test` passed 444 deterministic cases across 20 files, including 32 pending

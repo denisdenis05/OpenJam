@@ -12,6 +12,7 @@ const Fixture = Object.freeze({ client: '0123456789abcdef0123456789abcdef', othe
   rejectedStatus: 400, zero: 0, one: 1, two: 2, firstPosition: 0, maximumRecordCharacters: 65536,
   oversizedCharacters: 65537, oversizedCodeCharacters: 4097, paddingCharacter: 'x', malformedJson: '{',
   stateParameter: 'state', codeParameter: 'code', errorParameter: 'error', consentDenied: 'access_denied',
+  rootPath: '/', otherPath: '/other', redirectParameter: 'redirect_uri', fragment: 'unexpected-fragment',
   wrongState: 'unrelated-state', whitespaceCode: 'authorization code', privateFailure: 'Sensitive native store detail',
   recordKeys: Object.freeze(Object.values({ schema: 'schemaVersion', configuration: 'configuration', proof: 'proof', created: 'createdAtMilliseconds' })),
   configurationKeys: Object.freeze(Object.values({ client: 'clientIdentifier', redirect: 'redirectAddress', scopes: 'scopes' })),
@@ -184,3 +185,26 @@ test(Fixture.names.configurationErrors, async () => { const current = fixture();
   await assert.rejects(library.loadSpotifyAuthorizationConfiguration(current.authorizationStore, signal()), failure(library.IntegrationFailureCode.CredentialStorage)); });
 test(Fixture.names.unsupported, async () => { const current = fixture(); const dependencies = { ...current.dependencies }; delete dependencies.authorizationStore;
   await assert.rejects(new library.SpotifyLoginSession(dependencies).resumeAuthorization(callback(), signal()), failure(library.IntegrationFailureCode.Unsupported)); });
+
+const RootRedirectNames = Object.freeze({ warm: 'Warm sign-in accepts a custom scheme root slash while exchanging the original registered redirect',
+  resumed: 'Resumed sign-in accepts a custom scheme root slash without changing persisted configuration or token redirect',
+  rejected: 'Root slash callback compatibility does not bypass state fragment or nonroot path validation' });
+function rootCallback(overrides = {}) { const address = new URL(callback(overrides)); address.pathname = Fixture.rootPath; return address.toString(); }
+test(RootRedirectNames.warm, async () => { const current = fixture(); current.state.callback = rootCallback();
+  await current.session.login(signal());
+  assert.equal(new URLSearchParams(current.calls.requests[Fixture.firstPosition].body).get(Fixture.redirectParameter), Fixture.redirect);
+  assert.equal(current.state.pending, null); });
+test(RootRedirectNames.resumed, async () => { const current = fixture(pending());
+  await current.session.resumeAuthorization(rootCallback(), signal());
+  assert.equal(new URLSearchParams(current.calls.requests[Fixture.firstPosition].body).get(Fixture.redirectParameter), Fixture.redirect);
+  assert.equal(JSON.parse(current.state.grant).configuration.redirectAddress, Fixture.redirect);
+  assert.equal(current.state.pending, null); });
+test(RootRedirectNames.rejected, async () => { const foreignState = rootCallback({ [Fixture.stateParameter]: Fixture.wrongState });
+  const fragmented = new URL(rootCallback()); fragmented.hash = Fixture.fragment;
+  const nonroot = new URL(rootCallback()); nonroot.pathname = Fixture.otherPath;
+  for (const callbackAddress of [foreignState, fragmented.toString(), nonroot.toString()]) {
+    const current = fixture(pending());
+    await assert.rejects(current.session.resumeAuthorization(callbackAddress, signal()), failure(library.IntegrationFailureCode.InvalidResponse));
+    assert.equal(current.calls.requests.length, Fixture.zero); assert.equal(current.state.pending, pending());
+  }
+});

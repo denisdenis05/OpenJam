@@ -2,6 +2,9 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Shared callback base comparison, custom root path compatibility, network/opaque exclusions, scheme/host/port precedence and exact nonroot paths | `tests/authorization-redirect.test.mjs` |
+| Warm/resumed root-slash callbacks retain the registered token redirect and reject wrong state, fragments and other paths | `tests/pending-authorization.test.mjs` |
+| Warm event/native intent and cold startup root comparisons; specific scheme/host/path diagnostics and screen messages | Mobile `tools/spotify-authorization-recovery.test.cjs`, `tools/spotify-screen.test.tsx` |
 | Pending PKCE persistence before browser opening, secure shape, consume acknowledgement, restart resume, expiry, stale return then valid recovery, replay/configuration/malformed input, disposal/logout/storage races and isolated progress notifications | `tests/pending-authorization.test.mjs` |
 | Android callback/dismissal ordering, initial intent recovery, state isolation, cancellation and cleanup; cold account/restore ordering and one-time navigation | Mobile `tools/spotify-authorization-recovery.test.cjs` |
 | Android custom-tab capture and initial intent fallback; iOS native authentication session | Mobile `tools/spotify-login-platform.test.ts` |

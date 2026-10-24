@@ -9,6 +9,7 @@ export * from './observation/HostedQueueValues';
 export * from './session/RecordingQueueCoordinator';
 export * from '../contracts/authentication';
 export * from './authentication/SpotifyLoginSession';
+export * from './authentication/SpotifyAuthorizationRedirect';
 export { loadSpotifyLoginConfiguration } from './authentication/SpotifySavedLogin';
 export { loadSpotifyAuthorizationConfiguration } from './authentication/SpotifyPendingAuthorization';
 export * from './authentication/SpotifyCredentialOwnership';

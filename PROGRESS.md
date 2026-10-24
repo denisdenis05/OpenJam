@@ -1,3 +1,27 @@
+# Callback root path comparison — 2026-10-24
+
+The reporting phone now shows redirect-mismatch after an automatic return. That
+category did not identify scheme, host or path, and the actual received URI has
+not been captured. An added root slash is a candidate, not a confirmed cause.
+
+Added a shared parsed-address comparison used by login code extraction, mobile
+browser capture and startup recovery. For a custom scheme with an authority,
+only empty and root slash response paths compare equally. Scheme, authority
+(including port) and nonroot paths remain exact. Network/file and opaque custom
+addresses do not receive this compatibility rule. State, code, credentials and
+fragment validation remain separate and unchanged.
+
+The configured redirect string is never rewritten: authorization requests,
+secure pending/saved configuration and token exchange retain it. The comparison
+helper checks the callback base only; callers still validate the full response.
+Mobile rejection messages now identify scheme-mismatch, host-mismatch or
+path-mismatch without revealing callback values. The old generic status remains
+available for compatibility.
+
+Dedicated tests and results are in FEATURES.md and VALIDATION.md. The root-path
+warm-login regression fails against the preceding login implementation, then
+passes with the shared comparison. No physical login success is claimed.
+
 # Android login return recovery — 2026-10-24
 
 The reported symptom was browser sign-in returning to the same login form with
