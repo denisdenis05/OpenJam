@@ -2,7 +2,8 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
-| Desktop-authorized bootstrap/restore uses Keymaster; platform password sessions retain Login5; no cross-client fallback; safe rejection stages preserve transient recovery | Mobile `native/librespot-session/tests/token_exchange.rs` |
+| Desktop-authorized bootstrap/restore uses Login5 without a client token; platform password sessions retain upstream Login5; no cross-client fallback; safe rejection stages preserve transient recovery | Mobile `native/librespot-session/tests/token_exchange.rs` |
+| Desktop Login5 request/header binding, canonical account/token/expiry validation, protobuf bounds, transient errors, challenge solving/context, code verification and bounded rounds | Mobile `native/librespot-session/tests/desktop_login5.rs` |
 | Native rejection stage survives the adapter/provider/UI and rejected saved records are erased | `tests/librespot-login.test.mjs`; Mobile `tools/spotify-librespot-mobile.test.cjs`, `tools/spotify-screen.test.tsx` |
 | Device request/poll forms, safe browser validation, private/public record separation, secure acknowledgement, pending/slow_down pacing, default interval, expiry, restart resume, denial, transient failures, token consumption, native handoff, cancellation, overlap and observers | `tests/device-authorization.test.mjs` |
 | Password-free authorize strategy, one-use/logout behavior and pending resume through shared native grant persistence | `tests/librespot-login.test.mjs` |

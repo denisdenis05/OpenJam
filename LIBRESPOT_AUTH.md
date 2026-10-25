@@ -39,15 +39,19 @@ pending record before native bootstrap, without saving the OAuth token. A crash
 or failure after that consumption requires a new sign-in; no token is replayed.
 
 Native bootstrap connects the approved token with its matching desktop client
-identity, obtains canonical account/reusable access-point credentials and mints
-the native session token through Keymaster. Desktop-bound restoration uses the
-same exchange. Android password sessions continue to use Login5. This avoids
-Login5's Android client-token request being combined with a desktop login identity.
+identity and obtains canonical account/reusable access-point credentials. Paired
+sessions then mint a token through a dedicated stored-credential Login5 request
+without the client-token header. Desktop-bound restore uses the same exchange.
+Android password sessions retain upstream Login5 and its platform client token.
 There is no fallback that replays rejected credentials under another identity.
-Pairing and Keymaster request streaming, private account information, playback
-state, current playback and playback modification permissions. These cover device
-discovery and host queue submission; they do not establish private Jam admission.
-Restoration preserves the original client/device binding.
+
+The dedicated exchange validates account binding, token/expiry and response bounds;
+handles bounded hashcash challenge rounds through Librespot's solver; and preserves
+transient, verification and rejection categories. Network I/O, clock and solver
+are injected into the protocol exchange. Code verification remains unsupported.
+Pairing requests streaming, private account information, playback state, current
+playback and playback modification permissions. Private Jam admission is a
+separate check. Restoration preserves the original client/device binding.
 Existing password sessions still restore with their platform identity. Arbitrary
 client identities are rejected. Password network/bootstrap work retains the
 sixty-second native deadline; interactive approval uses its own server expiry.
@@ -63,12 +67,19 @@ Spotify response text, tokens or credential data. Transient network/deadline and
 cancellation failures keep their original classification. Unsupported verification
 remains unsupported and does not become a permanent credential rejection.
 
-The device-authorization HTTP initialization was checked live through the actual
-broker using an in-memory pending store. Spotify returned valid pairing fields;
-the observer canceled before browser opening, token polling, or native bootstrap.
-No email was requested and no account was approved. This is initialization
-verification only. Completed account authorization, native bootstrap and Jam
-admission still require the reporting phone.
+The user approved browser pairing for the local diagnostic runner. Live Linux
+access-point authentication succeeded; Keymaster returned HTTP 403 with both
+streaming alone and the five requested scopes. Upstream Login5 and the dedicated
+request without client-token succeeded. The request also succeeded with an
+Android-style user agent. The actual production bootstrap and restore functions
+then succeeded against that approved session. Credentials were held in memory
+and the diagnostic process was stopped afterward.
+
+This verifies the exchange and native restoration on Linux. It does not verify
+Android device execution, secure mobile persistence, Jam admission or playback.
+The public profile endpoint returned HTTP 503/429; the passive current-Jam read
+returned HTTP 404. Neither is counted as a successful account/Jam check. See the
+mobile SPOTIFY_AUTH_LIVE_RESEARCH.md for the exact scope and tool commands.
 
 ## Password option and renewal
 

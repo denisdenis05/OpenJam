@@ -1,3 +1,29 @@
+# Live-tested paired Login5 exchange — 2026-10-25
+
+The user approved desktop-browser pairing. Live native access-point connection
+succeeded, but Keymaster returned HTTP 403 for both streaming alone and all five
+scopes. Upstream Login5 succeeded on Linux. A dedicated stored-credential Login5
+request without client-token succeeded with both Linux and Android-style user
+agents. Production bootstrap and restore then succeeded using that same approved
+session. This replaces the earlier, disproved Keymaster candidate fix.
+
+Mobile native code now uses the dedicated request for paired desktop credentials;
+password sessions retain upstream Login5. Account, client/device, token, expiry,
+response/challenge bounds and hashcash context are validated. Injected HTTP,
+clock and solver support deterministic tests. Transient errors and unsupported
+verification retain their categories; no credential replay under another client
+identity is introduced. Native reusable credential and pending schemas are
+unchanged. No TypeScript runtime or bridge signature changes were required.
+
+Thirteen dedicated native protocol tests cover request/header binding, successful
+mint, wrong account, invalid token/expiry/response, server error categories,
+transport failures, hashcash context/solutions, unsupported code challenges,
+invalid challenges and request limits. Existing native routing/boundary and JNI
+checks passed. Mobile research notes track the exact live evidence, APK and
+remaining Android-device check. Public profile and private Jam access were not
+verified by this experiment. Next: install the rebuilt APK and test a fresh
+pairing and saved-session restore on the reporting phone.
+
 # Pairing-to-native session follow-up — 2026-10-25
 
 The reporting phone approved Spotify for Desktop pairing in the installed Spotify
