@@ -40,6 +40,10 @@ after five seconds without renewal even if JavaScript or observation stops.
 Expired leases can be reclaimed explicitly after JavaScript restart; active
 leases cannot be stolen. Foreground return does not automatically restart audio.
 
+Explicit host Play/Pause/Next/Previous/Seek commands are now available through
+the guarded command coordinator; see [HOSTED_PLAYBACK_COMMANDS.md](HOSTED_PLAYBACK_COMMANDS.md).
+Remote observations do not themselves send these commands.
+
 This is approximate foreground host following. Polling, transport delay, remote
 buffering that the public endpoint does not describe, local seek completion and
 audio-output latency limit alignment. No audible alignment or physical-device

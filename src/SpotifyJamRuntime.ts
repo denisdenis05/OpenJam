@@ -2,6 +2,8 @@ import type { AssociationStore, CatalogSong, MatchResult, MatchingPolicy, Record
 import type { Clock, HttpExecutor, Scheduler, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
 import type { HostedQueueReader } from '../contracts/hostedQueue';
 import type { JamQueueProtocol } from '../contracts/queue';
+import type { HostedPlaybackCommandProtocol } from '../contracts/hostedPlaybackCommands';
+import { SpotifyWebPlaybackCommandProtocol } from './playback/SpotifyWebPlaybackCommandProtocol';
 import { CandidateRanker } from './catalog/CandidateRanker';
 import { SpotifyWebCatalog } from './catalog/SpotifyWebCatalog';
 import { TrackTranslator } from './catalog/TrackTranslator';
@@ -43,6 +45,8 @@ export interface SpotifyJamDependencies {
   readonly enableMembershipObservation?: boolean;
   readonly membershipRequestIdentifiers?: () => string;
   readonly playbackClock?: SharedPlaybackClock;
+  readonly enableHostedPlaybackCommands?: boolean;
+  readonly playbackCommandProtocol?: HostedPlaybackCommandProtocol;
 }
 
 export class SpotifyJamRuntime {
@@ -68,7 +72,9 @@ export class SpotifyJamRuntime {
     this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);
     this.sessions.attachAccount(dependencies.accountIdentifier,
       new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership),
-      dependencies.enableHostedQueue ? dependencies.queueProtocol ?? new SpotifyWebQueueProtocol(requests) : null);
+      dependencies.enableHostedQueue ? dependencies.queueProtocol ?? new SpotifyWebQueueProtocol(requests) : null,
+      dependencies.enableHostedPlaybackCommands ? dependencies.playbackCommandProtocol
+        ?? (this.playbackReader ? new SpotifyWebPlaybackCommandProtocol(requests, this.playbackReader) : null) : null);
     this.recordingQueue = new RecordingQueueCoordinator(this.translator, this.sessions);
     this.hostedQueue = new HostedQueueObserver(this.sessions, dependencies.hostedQueueReader ?? new SpotifyWebHostedQueueReader(requests),
       dependencies.clock, dependencies.enableHostedQueueObservation, dependencies.scheduler);

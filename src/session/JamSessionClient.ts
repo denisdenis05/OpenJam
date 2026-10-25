@@ -2,16 +2,18 @@ import { IntegrationFailureCode } from '../../contracts/network';
 import { JamConnectionStatus, JamJoinMode } from '../../contracts/session';
 import type { ExternalStore, JamCapabilities, JamCommandResult, JamInvitation, JamProtocol, JamSnapshot } from '../../contracts/session';
 import type { JamQueueProtocol } from '../../contracts/queue';
+import type { HostedPlaybackCommand, HostedPlaybackCommandProtocol } from '../../contracts/hostedPlaybackCommands';
+import { copyHostedPlaybackCommand } from '../playback/HostedPlaybackCommandValues';
 import { checkCancellation, failureCode, IntegrationFailure } from '../network/IntegrationFailure';
 import { combineCancellation, withCancellation } from '../network/Cancellation';
 import { validateSpotifyQueueTrack } from './SpotifyQueueTrack';
 
 export const VerifiedJamCapabilities: JamCapabilities = Object.freeze({
-  createOrActivate: true, end: true, refresh: false, resolveInvitation: false, join: false, leave: false, observe: false, queue: false,
+  createOrActivate: true, end: true, refresh: false, resolveInvitation: false, join: false, leave: false, observe: false, queue: false, playbackControl: false,
 });
 const CommandPolicy = Object.freeze({ maximumPendingCommands: 16, emptyCount: 0, commandCount: 1,
   completedRequestLimit: 64, firstPosition: 0, createOperation: 'create', endOperation: 'end', refreshOperation: 'refresh',
-  joinOperation: 'join', leaveOperation: 'leave', refreshCurrentOperation: 'refresh-current', addQueueOperation: 'add-queue', minimumRetrySeconds: 0 });
+  joinOperation: 'join', leaveOperation: 'leave', refreshCurrentOperation: 'refresh-current', addQueueOperation: 'add-queue', playbackOperation: 'playback', minimumRetrySeconds: 0 });
 
 interface SessionOwnership {
   readonly accountIdentifier: string;
@@ -22,6 +24,8 @@ interface SessionOwnership {
   tail: Promise<unknown>;
   readonly queue: JamQueueProtocol | null;
   queueOutcomeUnknown: boolean;
+  readonly playback: HostedPlaybackCommandProtocol | null;
+  playbackOutcomeUnknown: boolean;
 }
 
 export class JamSessionClient implements ExternalStore<JamSnapshot> {
@@ -30,7 +34,8 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       || this.ownership?.protocol.readCurrentAccount !== undefined,
       join: this.experimentalMembership && this.ownership?.protocol.join !== undefined,
       leave: this.experimentalMembership && this.ownership?.protocol.leave !== undefined,
-      queue: this.ownership?.queue !== undefined && this.ownership.queue !== null });
+      queue: this.ownership?.queue !== undefined && this.ownership.queue !== null,
+      playbackControl: this.ownership?.playback !== undefined && this.ownership.playback !== null });
   }
   private ownership: SessionOwnership | null = null;
   private invitation: JamInvitation | null = null;
@@ -47,11 +52,12 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
     return () => { this.listeners.delete(listener); };
   };
 
-  attachAccount(accountIdentifier: string, protocol: JamProtocol, queue: JamQueueProtocol | null = null): void {
+  attachAccount(accountIdentifier: string, protocol: JamProtocol, queue: JamQueueProtocol | null = null,
+    playback: HostedPlaybackCommandProtocol | null = null): void {
     if (!accountIdentifier.trim()) throw new IntegrationFailure(IntegrationFailureCode.InvalidInput);
     this.detachAccount();
     this.ownership = { accountIdentifier, protocol, cancellation: new AbortController(), operations: new Map(),
-      pending: CommandPolicy.emptyCount, tail: Promise.resolve(), queue, queueOutcomeUnknown: false };
+      pending: CommandPolicy.emptyCount, tail: Promise.resolve(), queue, queueOutcomeUnknown: false, playback, playbackOutcomeUnknown: false };
     this.publish({ accountIdentifier, status: JamConnectionStatus.Ready, session: null, failure: null });
   }
 
@@ -151,6 +157,40 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
     return this.invitation;
   }
 
+  executeHostedPlayback(input: HostedPlaybackCommand, requestIdentifier: string): Promise<JamCommandResult> {
+    let command: HostedPlaybackCommand;
+    try { command = copyHostedPlaybackCommand(input); }
+    catch { return Promise.resolve(this.rejected(IntegrationFailureCode.InvalidInput)); }
+    const expected = this.snapshot;
+    const currentTarget = () => this.snapshot.accountIdentifier === expected.accountIdentifier
+      && this.snapshot.session?.identifier === expected.session?.identifier
+      && this.snapshot.session?.hostDeviceIdentifier === expected.session?.hostDeviceIdentifier
+      && this.snapshot.session?.active === expected.session?.active
+      && this.snapshot.session?.ownedByCurrentAccount === expected.session?.ownedByCurrentAccount;
+    const operation = JSON.stringify([CommandPolicy.playbackOperation, expected.session?.identifier, expected.session?.hostDeviceIdentifier, command]);
+    return this.submit(requestIdentifier, operation, async ownership => {
+      if (!ownership.playback) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      if (ownership.playbackOutcomeUnknown) throw new IntegrationFailure(IntegrationFailureCode.UnknownOutcome);
+      if (!currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+      const session = this.snapshot.session;
+      if (!session) throw new IntegrationFailure(IntegrationFailureCode.NotFound);
+      if (!session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      if (!session.active || !session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      const membership = new AbortController();
+      const scope = combineCancellation(ownership.cancellation.signal, membership.signal);
+      const stop = this.subscribe(() => { if (!currentTarget()) membership.abort(); });
+      try {
+        await withCancellation(ownership.playback.execute(command, session.hostDeviceIdentifier, scope.signal), scope.signal);
+        if (ownership !== this.ownership || !currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        this.publish({ ...this.snapshot, status: JamConnectionStatus.Ready, failure: null });
+      } catch (failure) {
+        if (ownership !== this.ownership || !currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        if (failureCode(failure) === IntegrationFailureCode.UnknownOutcome) ownership.playbackOutcomeUnknown = true;
+        throw failure;
+      } finally { stop(); scope.dispose(); }
+    });
+  }
+
   refreshSession(deviceIdentifier: string, requestIdentifier: string): Promise<JamCommandResult> {
     if (!deviceIdentifier.trim()) return Promise.resolve(this.rejected(IntegrationFailureCode.InvalidInput));
     const operation = JSON.stringify([CommandPolicy.refreshOperation, deviceIdentifier]);
@@ -210,6 +250,10 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       } catch (failure) {
         if (ownership !== this.ownership) return this.rejected(IntegrationFailureCode.Superseded);
         const code = failureCode(failure);
+        if (code === IntegrationFailureCode.Superseded) {
+          if (this.snapshot.session === priorSnapshot.session) this.publish(priorSnapshot);
+          return this.rejected(code);
+        }
         if (readOnly && code === IntegrationFailureCode.Canceled) {
           this.publish(priorSnapshot);
           return this.rejected(code);

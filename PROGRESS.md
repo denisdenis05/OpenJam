@@ -1,3 +1,45 @@
+# Owned-host playback controls and live Jam lifecycle — 2026-10-25
+
+Implemented explicit Play/Pause/Next/Previous/Seek through the existing bounded
+session command coordinator. The Web API adapter targets only the owned Jam's
+actual active host and reads fresh playback before mutation. Seek binds the
+expected track and rejects a position at/beyond duration; the public API cannot
+make that preflight atomic with a later track transition. Guest calls remain
+forbidden. No private guest command route or remote queue revision is invented.
+
+Commands are copied, serialized with membership/enqueue, deduplicated by request
+identity and target, and never replayed after an unknown outcome. Playback
+uncertainty survives membership refresh until connection replacement. Target or
+account replacement fences preparation and late results. Superseded queued work
+now preserves the accepted replacement membership snapshot instead of failing it.
+
+The mobile Jam screen includes explicit host controls, bounded seconds-based seek,
+pending state and an uncertainty fence. Observed playback continues to update the
+local follower; reflecting a remote target never sends another remote command.
+A separate developer probe reuses the production native login/provider/runtime
+and mobile regional resolver. It keeps credentials in memory/private child IPC,
+projects only status and protects preexisting/replaced Jams from test cleanup.
+
+Live verified after user browser approval: independent login, initial no-Jam
+read, create, passive present/owned/active refresh, invitation generation and
+restore. The created Jam had one participant and no host device. It remains open
+for the requested second-account membership check at this checkpoint; current
+mobile progress records the active probe/cleanup instructions. Live controls,
+guest admission and synchronized audio have not been established.
+
+Validation: npm test passed 556 cases across 24 files, including 19 dedicated
+host-command cases and source/strict compilation checks. Mobile passed 273 Node
+and 84 rendered/platform cases, including twelve command-store and eight control UI
+cases; full app TypeScript passed. Developer probe tests passed 16 cases, native
+example three, Rust/JNI host checks 39 and Android release/JVM 23. Forced Hermes
+bundle/assembly and APK signature/alignment checks passed; mobile progress records
+artifact details. No server/player runtime code changed.
+
+Next: collect the second-account invitation outcome; verify host commands with
+an actual active Spotify host; complete private guest state/queue/controls based
+on captured successful requests. App-led hosting, continuous background transport
+and native iOS Librespot login remain separate unfinished chapters.
+
 # Phone sign-in confirmed by user — 2026-10-25
 
 The user reports that sign-in works with the paired Login5 APK delivered in the

@@ -2,6 +2,9 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Host playback command routes/preflight/seek bounds, ownership, identity copying, duplicate/conflicting intents, serialization, uncertainty and stale membership preservation | `tests/hosted-playback-commands.test.mjs` |
+| Explicit mobile host playback controls, seek preparation, busy/uncertain/guest states, account/host replacement and late response fences | Mobile `tools/spotify-playback-commands.test.cjs`, `tools/spotify-playback-controls-screen.test.tsx` |
+| Private native-grant IPC, passive live probe status, protected existing/replaced Jams and explicit test-Jam cleanup | Mobile `tools/spotify-jam-probe.test.cjs` |
 | Desktop-authorized bootstrap/restore uses Login5 without a client token; platform password sessions retain upstream Login5; no cross-client fallback; safe rejection stages preserve transient recovery | Mobile `native/librespot-session/tests/token_exchange.rs` |
 | Desktop Login5 request/header binding, canonical account/token/expiry validation, protobuf bounds, transient errors, challenge solving/context, code verification and bounded rounds | Mobile `native/librespot-session/tests/desktop_login5.rs` |
 | Native rejection stage survives the adapter/provider/UI and rejected saved records are erased | `tests/librespot-login.test.mjs`; Mobile `tools/spotify-librespot-mobile.test.cjs`, `tools/spotify-screen.test.tsx` |

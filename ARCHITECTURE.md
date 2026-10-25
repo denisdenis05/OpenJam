@@ -41,6 +41,13 @@ typed failure. It excludes credentials, join tokens and invitation addresses.
 Invitation access is explicit and only available in ready state. Subscribers
 receive immutable copied state; listener failures do not change command results.
 
+Explicit owned-host Play/Pause/Next/Previous/Seek commands also use this
+coordinator. They require an active owned session and its current host, copy
+intents on submission and cancel preflight when that target changes. A fresh
+playback read precedes mutation; seek rechecks track identity and duration.
+Playback uncertainty has its own connection-lifetime fence, which membership
+refresh cannot clear. See HOSTED_PLAYBACK_COMMANDS.md.
+
 ## Credentials and requests
 
 `SpotifyCredentialSession` validates account identity and expiry, copies returned
@@ -85,7 +92,7 @@ versions. The mobile composition owns native proof generation and credential
 storage. Host queue submission/observation and foreground membership recovery
 are implemented. Normalized playback synchronization and foreground host following
 now compose the actual native player through exclusive leases. Guest queue/playback
-protocols, remote control routing, continuous background transport and measured
+protocols, guest control routing, continuous background transport and measured
 audio alignment remain open. See DEVELOPMENT_SEQUENCE.md for implementation and
 live gates.
 
