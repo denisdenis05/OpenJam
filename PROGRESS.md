@@ -1,3 +1,13 @@
+# Fresh native playback events observed — 2026-10-26
+
+After user playback, the independently registered native observer received new
+Dealer clusters with an active host, current timestamp anchors, pause/resume
+transitions and an 80-entry queue with occurrence identities. This is transport
+observation, not synchronized audio. Mobile built an observer-integration APK;
+its progress file records the exact artifact and live process 79452. A second
+account's Jam invitation is pending for guest admission testing. The next chapter
+is typed native queue/playback command preflight and transport integration.
+
 # Native credential handoff and Android connection ownership — 2026-10-26
 
 Added an explicit immutable account/opaque-record handoff from LibrespotLoginSession.
