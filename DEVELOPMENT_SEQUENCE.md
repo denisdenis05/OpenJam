@@ -1,5 +1,8 @@
 # Remaining Spotify Jam development
 
+Active queue: [IMPLEMENTATION_QUEUE.md](IMPLEMENTATION_QUEUE.md). The user now
+requires continuing through items 1–5 until end-to-end completion; iOS is deferred.
+
 Updated 2026-10-25 after user-confirmed Android sign-in. Work proceeds in chapters
 with dedicated feature tests and owning repository commits. Implemented code,
 user reports, agent-observed live tests and unfinished protocol work are tracked

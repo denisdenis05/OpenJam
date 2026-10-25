@@ -1,3 +1,13 @@
+# Remaining-work queue active — 2026-10-25
+
+IMPLEMENTATION_QUEUE.md tracks all five authorized Android/library tasks; iOS is
+deferred. Native persistent Connect foundation is implemented and under Android
+build/live validation in the mobile repository. It does not yet enable guest
+playback or change this library's advertised capabilities. Native tests/JNI and
+private probe tests pass; actual device registration awaits fresh browser
+approval. See mobile SPOTIFY_INTEGRATION_PROGRESS.md and native
+librespot-session/CONNECT_TRANSPORT.md for exact evidence and next steps.
+
 # Owned-host playback controls and live Jam lifecycle — 2026-10-25
 
 Implemented explicit Play/Pause/Next/Previous/Seek through the existing bounded

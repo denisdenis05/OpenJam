@@ -2,6 +2,8 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Persistent native Dealer framing/registration/HTTP classification, explicit command acknowledgement, heartbeat, cleanup ownership, connection handles and JNI input boundaries | Mobile `native/librespot-session/tests/connect_*.rs`; detailed mapping in `native/librespot-session/CONNECT_TRANSPORT.md` |
+| Safe native Connect diagnostic summaries/private IPC and explicit observer controls | Mobile `tools/spotify-connect-probe.test.cjs` |
 | Host playback command routes/preflight/seek bounds, ownership, identity copying, duplicate/conflicting intents, serialization, uncertainty and stale membership preservation | `tests/hosted-playback-commands.test.mjs` |
 | Explicit mobile host playback controls, seek preparation, busy/uncertain/guest states, account/host replacement and late response fences | Mobile `tools/spotify-playback-commands.test.cjs`, `tools/spotify-playback-controls-screen.test.tsx` |
 | Private native-grant IPC, passive live probe status, protected existing/replaced Jams and explicit test-Jam cleanup | Mobile `tools/spotify-jam-probe.test.cjs` |
