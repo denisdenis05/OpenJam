@@ -18,6 +18,14 @@ redirect allowlist. Public profile verification uses `/v1/me`, preferring
 Real OAuth admission to private Jam routes is still unverified;
 desktop research credentials are not substituted when OAuth access fails.
 
+## Independent Librespot provider
+
+The Android app's primary login now uses `LibrespotLoginSession`, documented in
+[LIBRESPOT_AUTH.md](LIBRESPOT_AUTH.md). It consumes an injected native session
+authenticator and secure credential store, rather than the developer browser
+flow. The remaining sections describe the optional OAuth provider and its callback
+recovery. Successful authentication is separate from private Jam admission.
+
 ## Callback base comparison
 
 `compareSpotifyAuthorizationRedirect` compares parsed protocol, authority and

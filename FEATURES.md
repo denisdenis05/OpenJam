@@ -2,6 +2,13 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Independent native login, one-use input, validated grants, durable acknowledgement, saved record selection, renewal/rotation/shared cancellation, account binding, stale work, storage failures, disposal/logout and progress observers | `tests/librespot-login.test.mjs` |
+| Injected native request dispatch, scoped cancellation, missing module and sanitized failures | Mobile `tools/spotify-librespot-mobile.test.cjs`, `tools/spotify-librespot-platform.test.ts` |
+| Native saved-session precedence, optional OAuth selection, no identity downgrade, callback-only resume and all-namespace forgetting | Mobile `tools/spotify-login-providers.test.cjs` |
+| Native account identity skips profile HTTP, retains Jam rejection, fences account replacement; UI clears password and distinguishes login/verification/Jam failures | Mobile `tools/spotify-mobile.test.cjs`, `tools/spotify-screen.test.tsx`, `tools/spotify-secure-platform.test.ts` |
+| Native input/record/type/account/expiry boundaries, request capacity/isolation/release, unsupported verification, cancellation and deadlines | Mobile `native/librespot-session/tests/session_boundaries.rs` |
+| Native worker registration, forwarding, duplicate/cancel/close/dispatch failure and safe native-load failures | Mobile `android/app/src/test/java/com/streamingservice/spotify/SpotifyLibrespotRequestRunnerTest.kt` |
+| Actual host JNI loading, null strings, duplicate registration, cancel-before-execute, release and malformed restoration | Mobile `tools/fixtures/librespot-jni/com/streamingservice/spotify/SpotifyLibrespotNative.java` |
 | Shared callback base comparison, custom root path compatibility, network/opaque exclusions, scheme/host/port precedence and exact nonroot paths | `tests/authorization-redirect.test.mjs` |
 | Warm/resumed root-slash callbacks retain the registered token redirect and reject wrong state, fragments and other paths | `tests/pending-authorization.test.mjs` |
 | Warm event/native intent and cold startup root comparisons; specific scheme/host/path diagnostics and screen messages | Mobile `tools/spotify-authorization-recovery.test.cjs`, `tools/spotify-screen.test.tsx` |

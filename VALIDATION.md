@@ -1,3 +1,25 @@
+# Librespot authentication validation — 2026-10-25
+
+`npm test` passed 496 cases across 22 files, including 42 independent-session
+cases. Source checking and strict compilation passed. Package dry-run reviewed
+124 files, including the new implementation, contracts and LIBRESPOT_AUTH.md;
+nothing was published.
+
+Mobile passed 249 service cases and 66 UI/platform cases, full TypeScript
+compilation, 320 player-mobile cases and seven player integration cases.
+Thirteen deterministic Rust tests cover native records, grant binding, capacity,
+cancellation, unsupported verification and deadline behavior. A real host JVM
+loaded the native library and passed JNI string/cancellation/release/error checks
+without authenticating or submitting a network request. Android's 23 JVM tests
+passed, including eight worker-runner regressions.
+
+Forced release bundling, native Rust compilation, assembly, APK signature and
+16 KB alignment checks passed. Archive verification found the ARM64 session
+library, matching Gradle's stripped output, the new Hermes login code and license
+assets. No physical Android device was connected. Live Login5 authentication,
+OS storage behavior and private Jam admission remain unverified. These checks
+are implementation/packaging evidence, not proof of successful Spotify login.
+
 # Callback base comparison validation — 2026-10-24
 
 `npm test` passed 454 deterministic cases across 21 files, including seven shared

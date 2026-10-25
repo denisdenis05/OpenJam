@@ -11,6 +11,12 @@ const IdentifierComponentSeparator = /(?=[A-Z])|_/;
 const ProhibitedIdentifierComponents = new Set(Object.values({ context: 'ctx', request: 'req', response: 'res', parameters: 'params', configuration: 'config', milliseconds: 'ms', identifier: 'id', identifiers: 'ids', function: 'fn', arguments: 'args', callback: 'cb', temporary: 'tmp', index: 'idx', authentication: 'auth', dataTransferObject: 'dto', applicationProgrammingInterface: 'api', randomNumberGenerator: 'rng' }));
 const CheckedDirectories = Object.values({ implementation: 'src', contracts: 'contracts', unitTests: 'tests', tools: 'tools' });
 const IntegrationSources = Object.values({
+  mobileLoginProvidersTests: '../StreamingServiceMobile/tools/spotify-login-providers.test.cjs',
+  mobileLoginProviders: '../StreamingServiceMobile/src/services/spotify/SpotifyLoginProviders.ts',
+  mobileLibrespotAuthentication: '../StreamingServiceMobile/src/services/spotify/SpotifyLibrespotAuthentication.ts',
+  mobileLibrespotPlatform: '../StreamingServiceMobile/src/services/SpotifyLibrespotPlatform.ts',
+  mobileLibrespotTests: '../StreamingServiceMobile/tools/spotify-librespot-mobile.test.cjs',
+  mobileLibrespotPlatformTests: '../StreamingServiceMobile/tools/spotify-librespot-platform.test.ts',
   mobileAuthorizationStartup: '../StreamingServiceMobile/src/services/spotify/SpotifyAuthorizationStartup.ts',
   mobileAuthorizationNavigation: '../StreamingServiceMobile/src/services/spotify/SpotifyAuthorizationNavigation.ts',
   mobileAuthorizationRecoveryTests: '../StreamingServiceMobile/tools/spotify-authorization-recovery.test.cjs',

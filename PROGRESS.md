@@ -1,3 +1,28 @@
+# Independent Librespot authentication — 2026-10-25
+
+Implemented LibrespotLoginSession behind injected native authentication, secure
+storage and clock contracts. It consumes username/password once, validates native
+canonical identity/token/expiry and saves only account plus opaque reusable
+credential. Login/restoration wait for secure persistence; renewal is shared and
+account-fenced. Rejected or malformed reusable credentials are erased, while
+transient failures preserve them. Disposal preserves storage; explicit logout
+retires memory and awaits forgetting. Progress observers cannot alter login.
+
+The mobile app composes the provider with pinned librespot-core through Android
+JNI, without the installed Spotify app, developer client ID or public /v1/me gate.
+Native login uses Login5, access-point authentication and renewable stored
+credentials. The account-owned Librespot namespace is separate from OAuth and
+pending-browser namespaces. The primary screen clears its password after press,
+restores saved native sessions first and distinguishes login from private Jam
+rejection. Optional OAuth remains available. No playback engine was changed.
+
+LIBRESPOT_AUTH.md records architecture, exact upstream revision, native packaging,
+framework boundaries and remaining live gates. FEATURES.md maps dedicated tests.
+Validation passed in VALIDATION.md and the mobile progress file. No physical
+login, live private Jam admission or guest audio result is claimed. Independent
+native authentication is implemented; its server acceptance needs the reporting
+phone. Existing guest/shared/background protocol work remains open.
+
 # Callback root path comparison — 2026-10-24
 
 The reporting phone now shows redirect-mismatch after an automatic return. That

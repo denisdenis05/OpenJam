@@ -88,3 +88,15 @@ now compose the actual native player through exclusive leases. Guest queue/playb
 protocols, remote control routing, continuous background transport and measured
 audio alignment remain open. See DEVELOPMENT_SEQUENCE.md for implementation and
 live gates.
+
+## Librespot native authentication boundary
+
+LibrespotLoginSession owns library credential lifetime and persistence through
+injected authentication/storage/clock contracts. The mobile Android adapter owns
+JNI, Login5 and access-point connections using pinned librespot-core. It returns
+canonical account identity, access-token expiry and an opaque renewable record.
+The private Jam transport consumes this provider without a public profile gate.
+The native crate has no audio/player dependency and does not activate playback.
+Provider/store selection is account-owned; failure to decode a native session
+cannot silently switch identity through a saved OAuth grant. LIBRESPOT_AUTH.md
+records native build details, protocol boundaries and live admission gaps.

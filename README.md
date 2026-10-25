@@ -189,3 +189,5 @@ Read [FEATURES.md](FEATURES.md), [ARCHITECTURE.md](ARCHITECTURE.md),
 The workspace quality skill applies to code, contracts, tools, tests, examples,
 and related integration changes. No generated/extracted Spotify application code
 or account credentials belongs in this repository.
+
+Independent Android session authentication is described in [LIBRESPOT_AUTH.md](LIBRESPOT_AUTH.md). The optional developer OAuth provider remains available. Live private Jam admission requires device validation.

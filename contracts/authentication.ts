@@ -1,11 +1,35 @@
 import type { Clock, HttpExecutor, SpotifyCredentialProvider, SpotifyCredentials } from './network';
 
 export interface SpotifyLoginProvider extends SpotifyCredentialProvider {
+  readonly authenticationMethod?: SpotifyLoginMethod;
   login(cancellation: AbortSignal): Promise<SpotifyCredentials>;
   logout(): void | Promise<void>;
   restore?(cancellation: AbortSignal): Promise<SpotifyCredentials>;
   resumeAuthorization?(callbackAddress: string, cancellation: AbortSignal): Promise<SpotifyCredentials>;
   dispose?(): void;
+}
+
+export enum SpotifyLoginMethod { OAuth = 'oauth', Librespot = 'librespot' }
+
+export interface LibrespotLoginInput {
+  readonly username: string;
+  readonly password: string;
+}
+
+export interface LibrespotSessionGrant extends SpotifyCredentials {
+  readonly storedCredential: string;
+}
+
+export interface LibrespotAuthentication {
+  login(input: LibrespotLoginInput, cancellation: AbortSignal): Promise<LibrespotSessionGrant>;
+  restore(storedCredential: string, cancellation: AbortSignal): Promise<LibrespotSessionGrant>;
+}
+
+export interface LibrespotLoginDependencies {
+  readonly authentication: LibrespotAuthentication;
+  readonly credentialStore: SpotifyLoginCredentialStore;
+  readonly clock: Clock;
+  readonly onProgress?: (stage: SpotifyLoginStage) => void;
 }
 
 export interface SpotifyLoginConfiguration {
