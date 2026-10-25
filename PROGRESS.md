@@ -1,3 +1,11 @@
+# Phone sign-in confirmed by user — 2026-10-25
+
+The user reports that sign-in works with the paired Login5 APK delivered in the
+previous chapter. Record this as user-confirmed Android sign-in, not an observed
+agent device test. Saved-session restore after restart, expiry renewal, private
+Jam admission, guest queue propagation and synchronized playback were not
+individually confirmed by that report. No runtime code or APK changed here.
+
 # Live-tested paired Login5 exchange — 2026-10-25
 
 The user approved desktop-browser pairing. Live native access-point connection
