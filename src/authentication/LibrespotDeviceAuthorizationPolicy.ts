@@ -1,5 +1,6 @@
 export const LibrespotDeviceAuthorizationPolicy = Object.freeze({
-  schemaVersion: 1, clientIdentifier: '65b708073fc0480ea92a077233ca87bd', scope: 'streaming',
+  schemaVersion: 2, clientIdentifier: '65b708073fc0480ea92a077233ca87bd',
+  scope: 'streaming user-read-private user-read-playback-state user-read-currently-playing user-modify-playback-state',
   deviceAddress: 'https://accounts.spotify.com/oauth2/device/authorize', tokenAddress: 'https://accounts.spotify.com/api/token',
   verificationAddress: 'https://spotify.com/pair', verificationPath: '/pair',
   verificationHosts: Object.values({ short: 'spotify.com', accounts: 'accounts.spotify.com' }),

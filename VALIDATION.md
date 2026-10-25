@@ -1,3 +1,40 @@
+# Pairing-to-native session follow-up — 2026-10-25
+
+The reporting phone approved Spotify for Desktop pairing in the installed Spotify
+app, returned manually and failed during native bootstrap. A redirect is not
+part of device authorization. The old error combined access-point connection and
+token minting, so it did not establish which native request Spotify rejected.
+
+Desktop-authorized native sessions now mint tokens through Librespot Keymaster
+instead of Login5. Desktop-bound restore/renewal uses the same route; Android
+password sessions retain Login5. Pinned Librespot 99b6088 uses the overridden
+desktop ID in Login5 but the platform Android ID in its client-token request.
+Removing that combination addresses a plausible failure path, not a measured
+explanation of the phone's server rejection. No cross-client fallback is used.
+
+Pairing now requests the same five streaming/account/playback scopes as Keymaster.
+Pending-device schema version 2 invalidates old streaming-only approval tickets;
+explicit login replaces them, while resume fails before opening or polling them.
+Native reusable-session and developer OAuth schemas stay unchanged.
+
+Safe native-session-rejected and native-token-rejected codes distinguish permanent
+access-point bootstrap and token-mint rejection. Structured Mercury 401/402/403
+responses count as rejection, 429 as backpressure and other responses as network
+failures; URI/payload/error text never reaches the UI. Transient classifications
+are preserved. Unsupported verification keeps its existing classification and
+saved-record recovery policy. Rejected saved records are erased. Dedicated tests cover routing,
+no fallback, old-ticket replacement/resume, broker code preservation, provider
+restore/renew cleanup, adapter propagation and rendered stage messages.
+
+Validation: npm test passed 537 cases across 23 files with source checks and strict
+compilation. Mobile passed 261 service and 76 UI/platform cases, full app
+TypeScript, 26 Rust cases and actual host JNI execution. Android release APK
+packaging and phone retesting are tracked in the mobile progress file.
+Accountless live initialization with all five scopes returned HTTP 200, expiry
+3599 seconds and interval 5 seconds; no user approval or native authentication
+was attempted. Private Jam access remains unverified. Next: install the rebuilt
+APK, begin a fresh pairing and check sign-in/restore and Jam admission on phone.
+
 # Browser/device login validation — 2026-10-25
 
 `npm test` passed 531 cases across 23 files, including 29 device-broker cases and

@@ -10,10 +10,11 @@ const Fixture = Object.freeze({ nowMilliseconds: 100000, lifetimeSeconds: 60, in
   foreignVerification: 'https://example.test/pair', wrongVerification: 'https://spotify.com/pair?code=OTHER',
   deviceAddress: 'https://accounts.spotify.com/oauth2/device/authorize', tokenAddress: 'https://accounts.spotify.com/api/token',
   codeParameter: 'device_code', clientParameter: 'client_id', grantParameter: 'grant_type', grantType: 'urn:ietf:params:oauth:grant-type:device_code',
-  scopeParameter: 'scope', scope: 'streaming', pending: 'authorization_pending', slowdown: 'slow_down', denied: 'access_denied',
+  scopeParameter: 'scope', scope: 'streaming user-read-private user-read-playback-state user-read-currently-playing user-modify-playback-state',
+  pending: 'authorization_pending', slowdown: 'slow_down', denied: 'access_denied',
   expired: 'expired_token', unsupported: 'unauthorized_client', bearer: 'Bearer', malformed: 'invalid-json',
   rawFailure: 'Sensitive browser or storage failure', whitespaceToken: 'invalid token', whitespaceCode: 'invalid code',
-  malformedCode: 'invalid user code', unknownVersion: 2, schemaVersion: 1, success: 200, rejected: 400, forbidden: 403,
+  malformedCode: 'invalid user code', unknownVersion: 3, schemaVersion: 2, previousSchemaVersion: 1, success: 200, rejected: 400, forbidden: 403,
   rateLimited: 429, unavailable: 503, retrySeconds: 30, zero: 0, one: 1, two: 2, three: 3, first: 0, next: 1,
   flushTurns: 80, recordLimit: 32769, padding: 'x', empty: '',
   names: Object.freeze({ start: 'Device authorization uses the supported client and waits for secure storage before browser and token polling',
@@ -185,3 +186,33 @@ test(DefaultIntervalName, async () => { const current = fixture(); current.state
   const authorizing = current.broker.authorize(signal()); await flush();
   assert.equal(JSON.parse(current.state.serialized).pollingIntervalMilliseconds, Fixture.intervalMilliseconds);
   await current.advance(); await authorizing; });
+
+const PreviousScopeResumeName = 'A streaming-only pending ticket cannot resume after playback permission requirements change';
+test(PreviousScopeResumeName, async () => { const current = fixture(record({ schemaVersion: Fixture.previousSchemaVersion }));
+  await assert.rejects(current.broker.resume(signal()), failure(library.IntegrationFailureCode.InvalidResponse));
+  assert.equal(current.state.serialized, null);
+  assert.equal(current.calls.requests.length + current.calls.opens.length + current.calls.bootstrap.length, Fixture.zero);
+});
+
+const PreviousScopeReplacementName = 'An explicit sign-in replaces an older permission ticket before requesting approval';
+test(PreviousScopeReplacementName, async () => { const current = fixture(record({ schemaVersion: Fixture.previousSchemaVersion }));
+  const authorizing = current.broker.authorize(signal()); await flush();
+  assert.equal(current.calls.clears, Fixture.one);
+  assert.equal(JSON.parse(current.state.serialized).schemaVersion, Fixture.schemaVersion);
+  const form = new URLSearchParams(current.calls.requests[Fixture.first].body);
+  assert.equal(form.get(Fixture.scopeParameter), Fixture.scope);
+  await current.advance(); await authorizing;
+});
+
+const NativeRejectionStagesName = 'Approved pairing preserves the exact native rejection stage after consuming the pending ticket';
+test(NativeRejectionStagesName, async () => {
+  for (const code of [library.IntegrationFailureCode.NativeSessionRejected, library.IntegrationFailureCode.NativeTokenRejected]) {
+    const current = fixture(record());
+    current.state.bootstrap = () => { throw new library.IntegrationFailure(code); };
+    const resuming = current.broker.resume(signal());
+    const rejected = assert.rejects(resuming, failure(code));
+    await flush(); await current.advance(); await rejected;
+    assert.equal(current.state.serialized, null);
+    assert.deepEqual(current.calls.bootstrap, [Fixture.token]);
+  }
+});

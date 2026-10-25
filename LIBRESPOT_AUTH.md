@@ -40,7 +40,14 @@ or failure after that consumption requires a new sign-in; no token is replayed.
 
 Native bootstrap connects the approved token with its matching desktop client
 identity, obtains canonical account/reusable access-point credentials and mints
-the native session token. Restoration preserves that client/device binding.
+the native session token through Keymaster. Desktop-bound restoration uses the
+same exchange. Android password sessions continue to use Login5. This avoids
+Login5's Android client-token request being combined with a desktop login identity.
+There is no fallback that replays rejected credentials under another identity.
+Pairing and Keymaster request streaming, private account information, playback
+state, current playback and playback modification permissions. These cover device
+discovery and host queue submission; they do not establish private Jam admission.
+Restoration preserves the original client/device binding.
 Existing password sessions still restore with their platform identity. Arbitrary
 client identities are rejected. Password network/bootstrap work retains the
 sixty-second native deadline; interactive approval uses its own server expiry.
@@ -50,6 +57,11 @@ same grant validation, persistence, renewal and lifetime fences with this flow.
 Each interactive login strategy is consumed once and retired on logout/disposal.
 Native account identity continues to bypass the public /v1/me gate. Approval,
 native bootstrap, storage and private Jam failures remain distinct stages.
+Permanent access-point bootstrap rejection reports `native-session-rejected`;
+permanent token-mint rejection reports `native-token-rejected`. Neither includes
+Spotify response text, tokens or credential data. Transient network/deadline and
+cancellation failures keep their original classification. Unsupported verification
+remains unsupported and does not become a permanent credential rejection.
 
 The device-authorization HTTP initialization was checked live through the actual
 broker using an in-memory pending store. Spotify returned valid pairing fields;

@@ -4,6 +4,8 @@ export enum IntegrationFailureCode {
   Canceled = 'canceled',
   Superseded = 'superseded',
   Unauthorized = 'unauthorized',
+  NativeSessionRejected = 'native-session-rejected',
+  NativeTokenRejected = 'native-token-rejected',
   Forbidden = 'forbidden',
   NotFound = 'not-found',
   RateLimited = 'rate-limited',

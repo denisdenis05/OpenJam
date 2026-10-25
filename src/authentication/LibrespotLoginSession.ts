@@ -206,6 +206,7 @@ export class LibrespotLoginSession implements SpotifyLoginProvider {
 
   private permanentFailure(failure: unknown): boolean {
     return failure instanceof IntegrationFailure && (failure.code === IntegrationFailureCode.Unauthorized
+      || failure.code === IntegrationFailureCode.NativeSessionRejected || failure.code === IntegrationFailureCode.NativeTokenRejected
       || failure.code === IntegrationFailureCode.InvalidResponse || failure.code === IntegrationFailureCode.InvalidInput);
   }
 

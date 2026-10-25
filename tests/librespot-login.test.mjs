@@ -282,3 +282,25 @@ test(DeviceStrategyNames.loggedOut, async () => { const current = fixture(); let
   const provider = new library.LibrespotLoginSession({ ...current.dependencies, authorize: async () => { authorizations += Fixture.one; return grant(); } });
   await provider.logout(); await assert.rejects(provider.login(signal()), failure(library.IntegrationFailureCode.Unauthorized));
   assert.equal(authorizations, Fixture.zero); provider.dispose(); });
+
+const NativeDiagnosticFailures = Object.values({ session: library.IntegrationFailureCode.NativeSessionRejected,
+  token: library.IntegrationFailureCode.NativeTokenRejected });
+const NativeDiagnosticNames = Object.freeze({ login: 'Distinct native authentication failures survive login without exposing private detail or publishing credentials',
+  restore: 'Distinct native rejection codes erase unusable saved sessions during restoration',
+  renewal: 'Distinct native rejection codes erase renewable material and retire active credentials' });
+test(NativeDiagnosticNames.login, async () => { for (const code of NativeDiagnosticFailures) {
+  const current = fixture(); current.state.login = async () => { throw new library.IntegrationFailure(code); };
+  await assert.rejects(current.session.login(signal()), failure(code)); assert.equal(current.calls.writes.length, Fixture.zero);
+  await assert.rejects(current.session.getCredentials(signal()), failure(library.IntegrationFailureCode.Unauthorized));
+} });
+test(NativeDiagnosticNames.restore, async () => { for (const code of NativeDiagnosticFailures) {
+  const current = fixture(saved()); current.state.restore = async () => { throw new library.IntegrationFailure(code); };
+  await assert.rejects(current.session.restore(signal()), failure(code)); assert.equal(current.state.serialized, null);
+  assert.equal(current.calls.clears, Fixture.one);
+} });
+test(NativeDiagnosticNames.renewal, async () => { for (const code of NativeDiagnosticFailures) {
+  const current = fixture(); await current.session.login(signal());
+  current.state.restore = async () => { throw new library.IntegrationFailure(code); };
+  await assert.rejects(current.session.renewCredentials(signal()), failure(code)); assert.equal(current.state.serialized, null);
+  await assert.rejects(current.session.getCredentials(signal()), failure(library.IntegrationFailureCode.Unauthorized));
+} });
