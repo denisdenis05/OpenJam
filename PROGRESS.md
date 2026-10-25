@@ -1,3 +1,26 @@
+# Native credential handoff and Android connection ownership — 2026-10-26
+
+Added an explicit immutable account/opaque-record handoff from LibrespotLoginSession.
+It waits for acknowledged durable state and token renewal, and rejects canceled,
+logged-out, disposed or stale work. The ordinary SpotifyCredentials result still
+contains no reusable credential. Five dedicated handoff cases and the complete
+561-case library suite pass.
+
+Mobile now composes a native-owned Connect polling worker with bounded lifecycle
+and command queues, account/generation fences and cleanup barriers. Joining in
+control mode selects this app's verified native device; remote audio admission
+remains blocked until playback handling exists. The UI separates connection
+registration from login and Jam membership. Detailed mapping is in FEATURES.md.
+
+Live browser approval and independent observer registration succeeded. Hidden
+observers are absent from Cluster.device; the native adapter now confirms their
+exact ID through Spotify's existing Jam device-status endpoint. Explicit refresh
+also succeeds. Returned playback is cached and no active host is present; fresh
+pushes, second-account joining, shared queue, synchronized audio and app-led host
+publication remain open. The mobile live probe is still retained in memory;
+read SPOTIFY_INTEGRATION_PROGRESS.md before requesting another approval.
+This chapter does not complete IMPLEMENTATION_QUEUE.md; iOS remains deferred.
+
 # Remaining-work queue active — 2026-10-25
 
 IMPLEMENTATION_QUEUE.md tracks all five authorized Android/library tasks; iOS is

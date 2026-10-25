@@ -8,7 +8,7 @@ player and owned-host control guards are preserved.
 
 | Order | Work | Status | Completion evidence |
 | --- | --- | --- | --- |
-| 1 | Persistent native AP/Dealer connection, Connect device registration, reliable guest join/leave, permissions and recovery | In progress: native transport and registration | Independently registered device; successful second-account control/remote admission; leave/kick/reconnect/role changes reflected correctly |
+| 1 | Persistent native AP/Dealer connection, Connect device registration, reliable guest join/leave, permissions and recovery | In progress: native transport/Android ownership implemented; hidden observer registration live verified; guest admission pending | Independently registered device; successful second-account control/remote admission; leave/kick/reconnect/role changes reflected correctly |
 | 2 | Guest shared queue commands, occurrence identities, ordering and uncertain/competing edit reconciliation | Queued | Accepted guest mutations correlated with observed host/guest queue updates; repeated tracks and interrupted receipts handled without duplicate edits |
 | 3 | Fresh guest playback events, local-media synchronization, permitted remote controls and reconnect | Queued | Track changes, pause/resume, seek and skip work across accounts; simultaneous local/Spotify audio checked and timing measured |
 | 4 | App-led hosting and publication of local track/position/queue state | Queued | Spotify participant follows the app's playback authority using app catalog audio; incoming controls are acknowledged after accepted player actions |

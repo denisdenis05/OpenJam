@@ -2,6 +2,9 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Explicit immutable native credential handoff after durable acknowledgement, renewal rotation, cancellation, logout/disposal and stale renewal | `tests/librespot-login.test.mjs` (five native-handoff cases) |
+| Android connection ownership, strict native decoding, account/generation fencing, cleanup barriers/retry and native join device selection | Mobile `SpotifyConnectOwnerTest.kt`, `SpotifyConnectNativeExecutionTest.kt`, `tools/spotify-connect-store.test.cjs`, `tools/spotify-mobile.test.cjs` |
+| Android Connect event platform and separate registration/control-only UI | Mobile `tools/spotify-connect-platform.test.ts`, `tools/spotify-screen.test.tsx` |
 | Persistent native Dealer framing/registration/HTTP classification, explicit command acknowledgement, heartbeat, cleanup ownership, connection handles and JNI input boundaries | Mobile `native/librespot-session/tests/connect_*.rs`; detailed mapping in `native/librespot-session/CONNECT_TRANSPORT.md` |
 | Safe native Connect diagnostic summaries/private IPC and explicit observer controls | Mobile `tools/spotify-connect-probe.test.cjs` |
 | Host playback command routes/preflight/seek bounds, ownership, identity copying, duplicate/conflicting intents, serialization, uncertainty and stale membership preservation | `tests/hosted-playback-commands.test.mjs` |

@@ -7,6 +7,7 @@ export interface SpotifyLoginProvider extends SpotifyCredentialProvider {
   restore?(cancellation: AbortSignal): Promise<SpotifyCredentials>;
   resumeAuthorization?(callbackAddress: string, cancellation: AbortSignal): Promise<SpotifyCredentials>;
   dispose?(): void;
+  getNativeSessionCredential?(cancellation: AbortSignal): Promise<LibrespotNativeSessionCredential>;
 }
 
 export enum SpotifyLoginMethod { OAuth = 'oauth', Librespot = 'librespot' }
@@ -17,6 +18,11 @@ export interface LibrespotLoginInput {
 }
 
 export interface LibrespotSessionGrant extends SpotifyCredentials {
+  readonly storedCredential: string;
+}
+
+export interface LibrespotNativeSessionCredential {
+  readonly accountIdentifier: string;
   readonly storedCredential: string;
 }
 

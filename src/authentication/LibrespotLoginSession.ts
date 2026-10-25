@@ -1,5 +1,5 @@
 import { SpotifyLoginMethod, SpotifyLoginStage } from '../../contracts/authentication';
-import type { LibrespotLoginDependencies, LibrespotLoginInput, LibrespotSessionGrant, SpotifyLoginProvider } from '../../contracts/authentication';
+import type { LibrespotLoginDependencies, LibrespotLoginInput, LibrespotNativeSessionCredential, LibrespotSessionGrant, SpotifyLoginProvider } from '../../contracts/authentication';
 import { IntegrationFailureCode } from '../../contracts/network';
 import type { SpotifyCredentials } from '../../contracts/network';
 import { withCancellation } from '../network/Cancellation';
@@ -97,6 +97,18 @@ export class LibrespotLoginSession implements SpotifyLoginProvider {
     checkCancellation(cancellation);
     this.assertCurrent(lifetime);
     return credentials;
+  }
+
+  async getNativeSessionCredential(cancellation: AbortSignal): Promise<LibrespotNativeSessionCredential> {
+    checkCancellation(cancellation);
+    const lifetime = this.lifetime;
+    const credentials = await this.getCredentials(cancellation);
+    checkCancellation(cancellation);
+    this.assertCurrent(lifetime);
+    if (this.storedCredential === null || this.credentials?.accountIdentifier !== credentials.accountIdentifier) {
+      throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+    }
+    return Object.freeze({ accountIdentifier: credentials.accountIdentifier, storedCredential: this.storedCredential });
   }
 
   async logout(): Promise<void> {

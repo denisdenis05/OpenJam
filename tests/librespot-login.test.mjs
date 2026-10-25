@@ -51,7 +51,12 @@ const Fixture = Object.freeze({ username: 'listener@example.test', normalizedUse
     invalidInput: 'Invalid native login inputs are rejected before any native work',
     renewalStorage: 'A failed rotated-grant save cannot publish its new access token',
     expiredDispose: 'Dispose during shared renewal rejects all active callers and ignores late results',
-    renewalOverlap: 'Restoration cannot replace an in-progress shared native renewal' }) });
+    renewalOverlap: 'Restoration cannot replace an in-progress shared native renewal',
+    nativeCredential: 'Native connection handoff exposes only a frozen account and opaque reusable credential',
+    nativeBeforeSave: 'Native connection credentials remain unavailable until durable login acknowledgement',
+    nativeRenewal: 'Native connection handoff waits for renewal and returns the acknowledged rotated record',
+    nativeRetirement: 'Logout disposal and canceled native handoffs cannot expose a retired credential',
+    nativeLateRenewal: 'Disposal during native handoff renewal fences a late reusable record' }) });
 
 function signal() { return new AbortController().signal; }
 function input(overrides = {}) { return { username: Fixture.username, password: Fixture.password, ...overrides }; }
@@ -80,6 +85,49 @@ function fixture(serialized = null, loginInput = input()) {
     onProgress: stage => { calls.stages.push(stage); } };
   return { state, calls, store, authentication, dependencies, session: new library.LibrespotLoginSession(dependencies, loginInput) };
 }
+
+test(Fixture.names.nativeCredential, async () => {
+  const current = fixture(); await current.session.login(signal());
+  const native = await current.session.getNativeSessionCredential(signal());
+  assert.deepEqual(native, { accountIdentifier: Fixture.account, storedCredential: Fixture.stored });
+  assert.ok(Object.isFrozen(native)); assert.equal(JSON.stringify(native).includes(Fixture.token), false);
+  assert.deepEqual(Object.keys(await current.session.getCredentials(signal())), Fixture.credentialKeys);
+});
+test(Fixture.names.nativeBeforeSave, async () => {
+  const current = fixture(); const writing = deferred(); current.state.write = () => writing.promise;
+  const loggingIn = current.session.login(signal()); await flushMicrotasks();
+  await assert.rejects(current.session.getNativeSessionCredential(signal()), failure(library.IntegrationFailureCode.Unauthorized));
+  writing.resolve(); await loggingIn;
+  assert.equal((await current.session.getNativeSessionCredential(signal())).storedCredential, Fixture.stored);
+});
+test(Fixture.names.nativeRenewal, async () => {
+  const current = fixture(); await current.session.login(signal());
+  current.state.nowMilliseconds += Fixture.lifetimeMilliseconds;
+  current.state.grant = grant({ storedCredential: Fixture.replacementStored, accessToken: Fixture.replacementToken,
+    expiresAtMilliseconds: current.state.nowMilliseconds + Fixture.lifetimeMilliseconds });
+  const native = await current.session.getNativeSessionCredential(signal());
+  assert.equal(native.storedCredential, Fixture.replacementStored);
+  assert.equal(current.calls.restores.length, Fixture.one);
+});
+test(Fixture.names.nativeRetirement, async () => {
+  for (const dispose of [false, true]) {
+    const current = fixture(); await current.session.login(signal());
+    const cancellation = new AbortController(); cancellation.abort();
+    await assert.rejects(current.session.getNativeSessionCredential(cancellation.signal), failure(library.IntegrationFailureCode.Canceled));
+    if (dispose) current.session.dispose(); else await current.session.logout();
+    await assert.rejects(current.session.getNativeSessionCredential(signal()), failure(library.IntegrationFailureCode.Unauthorized));
+  }
+});
+test(Fixture.names.nativeLateRenewal, async () => {
+  const current = fixture(); await current.session.login(signal());
+  current.state.nowMilliseconds += Fixture.lifetimeMilliseconds;
+  const restoring = deferred(); current.state.restore = () => restoring.promise;
+  const handoff = current.session.getNativeSessionCredential(signal()); await flushMicrotasks();
+  current.session.dispose();
+  restoring.resolve(grant({ storedCredential: Fixture.replacementStored,
+    expiresAtMilliseconds: current.state.nowMilliseconds + Fixture.lifetimeMilliseconds }));
+  await assert.rejects(handoff, failure(library.IntegrationFailureCode.Canceled));
+});
 
 test(Fixture.names.login, async () => { const current = fixture(); const credentials = await current.session.login(signal());
   assert.equal(current.session.authenticationMethod, library.SpotifyLoginMethod.Librespot); assert.equal(credentials.accountIdentifier, Fixture.account);

@@ -7,6 +7,14 @@ reusable credential and supplies tokens to the existing Jam runtime. It makes no
 public profile request. The native canonical Spotify username is the account
 identity for this provider.
 
+An explicit getNativeSessionCredential call supplies a frozen canonical account
+and opaque reusable credential to an account-bound native connection adapter.
+It waits for token renewal and acknowledged durable rotation, and fences logout,
+disposal and canceled callers. Ordinary login/getCredentials results do not
+contain that record. Treat this handoff as private native IPC; never put it in
+screen state, logs or application-server requests. Android connection ownership
+and device registration are documented in the mobile native CONNECT_TRANSPORT.md.
+
 The Android implementation uses only librespot-core and its protocol/OAuth
 transitive dependencies. It does not compile librespot's audio, playback or
 Connect-receiver components. StreamingServicePlayer remains the selected local
