@@ -1,3 +1,23 @@
+# Browser/device login validation — 2026-10-25
+
+`npm test` passed 531 cases across 23 files, including 29 device-broker cases and
+48 native-session/provider cases. Source checking and strict compilation passed.
+Package dry-run reviewed 128 files; nothing was published. The 29 broker cases
+also passed using the installed React Native URL polyfill implementations.
+
+Mobile passed 261 service and 74 UI/platform cases, full TypeScript compilation,
+320 player-mobile cases and seven player integration cases. Native validation
+passed 19 Rust cases and actual host JNI execution, including malformed and
+canceled bootstrap. Android's 23 JVM cases passed during release assembly.
+
+The actual broker's live device-authorization request returned valid pairing
+metadata. Its observer canceled before browser opening/token polling/native
+bootstrap. No account was authenticated and no email was requested. This result
+covers live initialization only. The reporting phone must verify completed
+approval, canonical native bootstrap, restart/restore and private Jam admission.
+Final APK bundling, signature, alignment and archive details are recorded in the
+mobile progress file. No audible/guest/background result is claimed.
+
 # Librespot authentication validation — 2026-10-25
 
 `npm test` passed 496 cases across 22 files, including 42 independent-session

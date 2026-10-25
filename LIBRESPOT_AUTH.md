@@ -13,9 +13,54 @@ Connect-receiver components. StreamingServicePlayer remains the selected local
 playback engine. There is no installed Spotify application or developer client
 ID requirement for the Librespot login path.
 
-## Login and renewal
+## Browser-assisted email-code login
 
-1. The user explicitly submits a Spotify username/email and password. The screen
+The primary Android flow is Librespot device authorization. The app requests a
+pairing code with the supported desktop client identity, securely records its
+private device credential, and opens Spotify's verification page. Spotify's page
+handles email-code, password or other login methods available to the account.
+The pairing code shown by our app is distinct from the email code Spotify sends.
+The app does not receive the email code or read the user's inbox.
+
+`LibrespotDeviceAuthorization` owns request/response validation and polling through
+injected HTTP, clock, scheduler, secure pending store and native bootstrap. It
+waits the server interval (five seconds if omitted), persists increased delay on
+slow_down, checks expiry and sanitizes all failures. Browser addresses are limited
+to HTTPS Spotify pairing pages and the matching public user code. Observers get
+only code, verification address and expiry; the device credential stays private.
+
+The pending record is stored before opening the browser. Transient polling/browser
+failures preserve it. `resume` polls an existing transaction without requesting
+another code or reopening the browser. Opening the Jam screen after process
+restart attempts that recovery; there is no automatic cold-start navigation.
+Account replacement, explicit cancel, Disconnect and Forget clear all four
+namespaces. A denied or expired transaction is erased. Token success consumes the
+pending record before native bootstrap, without saving the OAuth token. A crash
+or failure after that consumption requires a new sign-in; no token is replayed.
+
+Native bootstrap connects the approved token with its matching desktop client
+identity, obtains canonical account/reusable access-point credentials and mints
+the native session token. Restoration preserves that client/device binding.
+Existing password sessions still restore with their platform identity. Arbitrary
+client identities are rejected. Password network/bootstrap work retains the
+sixty-second native deadline; interactive approval uses its own server expiry.
+
+`LibrespotLoginSession` accepts optional authorize/resume strategies to share the
+same grant validation, persistence, renewal and lifetime fences with this flow.
+Each interactive login strategy is consumed once and retired on logout/disposal.
+Native account identity continues to bypass the public /v1/me gate. Approval,
+native bootstrap, storage and private Jam failures remain distinct stages.
+
+The device-authorization HTTP initialization was checked live through the actual
+broker using an in-memory pending store. Spotify returned valid pairing fields;
+the observer canceled before browser opening, token polling, or native bootstrap.
+No email was requested and no account was approved. This is initialization
+verification only. Completed account authorization, native bootstrap and Jam
+admission still require the reporting phone.
+
+## Password option and renewal
+
+1. For the optional password method, the user explicitly submits a Spotify email and password. The screen
    clears its password field immediately. The provider consumes its input once.
 2. The Android native adapter acquires a client token and submits Login5 through
    upstream librespot. It connects to an access point using the resulting token,
@@ -43,7 +88,7 @@ An account-owned `SpotifyLoginCredentialStore` is required. Mobile composition
 uses the existing serialized ownership and native Keychain adapter with the
 `StreamingService.SpotifyLibrespot.` namespace. Only revocation markers are put
 in AsyncStorage. Account replacement, Disconnect and Forget attempt removal from
-Librespot, OAuth and pending-browser namespaces. Disposal preserves a saved
+Librespot, OAuth, pending-browser and pending-device namespaces. Disposal preserves a saved
 session for restoration. An invalid native record cannot silently switch to a
 saved OAuth identity.
 

@@ -2,6 +2,11 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Device request/poll forms, safe browser validation, private/public record separation, secure acknowledgement, pending/slow_down pacing, default interval, expiry, restart resume, denial, transient failures, token consumption, native handoff, cancellation, overlap and observers | `tests/device-authorization.test.mjs` |
+| Password-free authorize strategy, one-use/logout behavior and pending resume through shared native grant persistence | `tests/librespot-login.test.mjs` |
+| Primary device-login UI, pairing/reopen/cancel, native-bootstrap stage, four-namespace selection and account/lifetime fences | Mobile `tools/spotify-screen.test.tsx`, `tools/spotify-mobile.test.cjs`, `tools/spotify-login-providers.test.cjs`, `tools/spotify-secure-platform.test.ts` |
+| Approved-token native dispatch, platform errors and browser launch | Mobile `tools/spotify-librespot-mobile.test.cjs`, `tools/spotify-librespot-platform.test.ts` |
+| Fixed desktop native bootstrap, client-bound restore compatibility, invalid/canceled bootstrap and JNI handoff | Mobile `native/librespot-session/tests/session_boundaries.rs`, `tools/fixtures/librespot-jni/com/streamingservice/spotify/SpotifyLibrespotNative.java` |
 | Independent native login, one-use input, validated grants, durable acknowledgement, saved record selection, renewal/rotation/shared cancellation, account binding, stale work, storage failures, disposal/logout and progress observers | `tests/librespot-login.test.mjs` |
 | Injected native request dispatch, scoped cancellation, missing module and sanitized failures | Mobile `tools/spotify-librespot-mobile.test.cjs`, `tools/spotify-librespot-platform.test.ts` |
 | Native saved-session precedence, optional OAuth selection, no identity downgrade, callback-only resume and all-namespace forgetting | Mobile `tools/spotify-login-providers.test.cjs` |

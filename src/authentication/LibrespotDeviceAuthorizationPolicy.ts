@@ -1,0 +1,17 @@
+export const LibrespotDeviceAuthorizationPolicy = Object.freeze({
+  schemaVersion: 1, clientIdentifier: '65b708073fc0480ea92a077233ca87bd', scope: 'streaming',
+  deviceAddress: 'https://accounts.spotify.com/oauth2/device/authorize', tokenAddress: 'https://accounts.spotify.com/api/token',
+  verificationAddress: 'https://spotify.com/pair', verificationPath: '/pair',
+  verificationHosts: Object.values({ short: 'spotify.com', accounts: 'accounts.spotify.com' }),
+  secureProtocol: 'https:', codeParameter: 'code', grantType: 'urn:ietf:params:oauth:grant-type:device_code',
+  formMediaType: 'application/x-www-form-urlencoded', contentTypeHeader: 'content-type', acceptHeader: 'accept', jsonMediaType: 'application/json',
+  successStatus: 200, invalidRequestStatus: 400, unauthorizedStatus: 401, forbiddenStatus: 403, rateLimitedStatus: 429,
+  serverFailureMinimumStatus: 500,
+  millisecondsPerSecond: 1000, defaultIntervalMilliseconds: 5000, slowdownMilliseconds: 5000,
+  maximumIntervalMilliseconds: 300000, maximumLifetimeMilliseconds: 86400000, minimumTimestampMilliseconds: 0,
+  maximumRecordCharacters: 32768, maximumDeviceCodeCharacters: 8192, maximumTokenCharacters: 16384,
+  userCodePattern: /^[A-Za-z0-9_-]{4,32}$/, whitespacePattern: /\s/, objectType: 'object', stringType: 'string',
+  pendingError: 'authorization_pending', slowdownError: 'slow_down', expiredError: 'expired_token', rejectedGrantError: 'invalid_grant',
+  deniedError: 'access_denied', unsupportedErrors: Object.values({ client: 'invalid_client', disabled: 'unauthorized_client', scope: 'invalid_scope' }),
+  abortEvent: 'abort', bearerType: 'bearer', singleParameterCount: 1,
+});

@@ -250,3 +250,35 @@ test(AdditionalNames.presenceCanceled, async () => { const current = fixture(sav
   const cancellation = new AbortController(); const finding = library.hasSavedLibrespotLogin(current.store, cancellation.signal);
   const canceled = assert.rejects(finding, failure(library.IntegrationFailureCode.Canceled)); cancellation.abort(); await canceled;
   reading.resolve(saved()); await flushMicrotasks(); assert.equal(current.calls.inputs.length + current.calls.restores.length, Fixture.zero); });
+
+const DeviceStrategyNames = Object.freeze({ login: 'A device authorization strategy establishes and persists a session without a password input',
+  once: 'A device authorization strategy cannot be replayed on the same login provider',
+  resume: 'Missing native credentials resume an existing device transaction when a resume strategy is provided',
+  savedFirst: 'A saved native credential is preferred over pending device authorization during restoration',
+  cancel: 'Canceled device authorization cannot accept an uncooperative late native grant',
+  loggedOut: 'Logging out before device authorization retires the unused strategy' });
+test(DeviceStrategyNames.login, async () => { const current = fixture(); let authorizations = Fixture.zero;
+  const provider = new library.LibrespotLoginSession({ ...current.dependencies, authorize: async () => { authorizations += Fixture.one; return grant(); } });
+  const credentials = await provider.login(signal()); assert.equal(credentials.accountIdentifier, Fixture.account);
+  assert.equal(authorizations, Fixture.one); assert.equal(current.calls.inputs.length, Fixture.zero);
+  assert.equal(JSON.parse(current.state.serialized).storedCredential, Fixture.stored); provider.dispose(); });
+test(DeviceStrategyNames.once, async () => { const current = fixture(); let authorizations = Fixture.zero;
+  const provider = new library.LibrespotLoginSession({ ...current.dependencies, authorize: async () => { authorizations += Fixture.one; return grant(); } });
+  await provider.login(signal()); await assert.rejects(provider.login(signal()), failure(library.IntegrationFailureCode.Unauthorized));
+  assert.equal(authorizations, Fixture.one); provider.dispose(); });
+test(DeviceStrategyNames.resume, async () => { const current = fixture(); let resumptions = Fixture.zero;
+  const provider = new library.LibrespotLoginSession({ ...current.dependencies, resumeAuthorization: async () => { resumptions += Fixture.one; return grant(); } });
+  await provider.restore(signal()); assert.equal(resumptions, Fixture.one); assert.equal(current.calls.inputs.length + current.calls.restores.length, Fixture.zero);
+  assert.notEqual(current.state.serialized, null); provider.dispose(); });
+test(DeviceStrategyNames.savedFirst, async () => { const current = fixture(saved()); let resumptions = Fixture.zero;
+  const provider = new library.LibrespotLoginSession({ ...current.dependencies, resumeAuthorization: async () => { resumptions += Fixture.one; return grant(); } });
+  await provider.restore(signal()); assert.equal(resumptions, Fixture.zero); assert.equal(current.calls.restores.length, Fixture.one); provider.dispose(); });
+test(DeviceStrategyNames.cancel, async () => { const current = fixture(); const pending = deferred();
+  const provider = new library.LibrespotLoginSession({ ...current.dependencies, authorize: () => pending.promise });
+  const cancellation = new AbortController(); const signingIn = provider.login(cancellation.signal);
+  const canceled = assert.rejects(signingIn, failure(library.IntegrationFailureCode.Canceled)); await flushMicrotasks(); cancellation.abort(); await canceled;
+  pending.resolve(grant()); await flushMicrotasks(); assert.equal(current.state.serialized, null); provider.dispose(); });
+test(DeviceStrategyNames.loggedOut, async () => { const current = fixture(); let authorizations = Fixture.zero;
+  const provider = new library.LibrespotLoginSession({ ...current.dependencies, authorize: async () => { authorizations += Fixture.one; return grant(); } });
+  await provider.logout(); await assert.rejects(provider.login(signal()), failure(library.IntegrationFailureCode.Unauthorized));
+  assert.equal(authorizations, Fixture.zero); provider.dispose(); });

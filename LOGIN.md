@@ -20,7 +20,8 @@ desktop research credentials are not substituted when OAuth access fails.
 
 ## Independent Librespot provider
 
-The Android app's primary login now uses `LibrespotLoginSession`, documented in
+The Android app's primary browser/device login uses `LibrespotDeviceAuthorization`
+and `LibrespotLoginSession`; password login is optional. Both are documented in
 [LIBRESPOT_AUTH.md](LIBRESPOT_AUTH.md). It consumes an injected native session
 authenticator and secure credential store, rather than the developer browser
 flow. The remaining sections describe the optional OAuth provider and its callback

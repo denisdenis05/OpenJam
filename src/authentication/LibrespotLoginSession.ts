@@ -16,19 +16,23 @@ export class LibrespotLoginSession implements SpotifyLoginProvider {
   private lifetime = new AbortController();
   private authenticating = false;
   private disposed = false;
+  private authorizationAvailable: boolean;
 
   constructor(private readonly dependencies: LibrespotLoginDependencies, input?: LibrespotLoginInput) {
     this.input = input === undefined ? null : this.validatedInput(input);
+    this.authorizationAvailable = dependencies.authorize !== undefined;
   }
 
   async login(cancellation: AbortSignal): Promise<SpotifyCredentials> {
     this.requireAvailable(cancellation);
     const input = this.input;
     this.input = null;
-    if (input === null) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+    const authorize = this.authorizationAvailable ? this.dependencies.authorize : undefined;
+    this.authorizationAvailable = false;
+    if (input === null && authorize === undefined) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
     return this.authenticate(async lifetime => {
       this.progress(SpotifyLoginStage.Authorizing, lifetime);
-      const grant = await withCancellation(this.dependencies.authentication.login(input, lifetime.signal), lifetime.signal);
+      const grant = await withCancellation(authorize === undefined ? this.dependencies.authentication.login(input!, lifetime.signal) : authorize(lifetime.signal), lifetime.signal);
       this.assertCurrent(lifetime);
       return this.accept(grant, null, lifetime);
     }, cancellation, false);
@@ -42,7 +46,13 @@ export class LibrespotLoginSession implements SpotifyLoginProvider {
       try { serialized = await withCancellation(this.dependencies.credentialStore.read(lifetime.signal), lifetime.signal); }
       catch (failure) { throw this.failure(failure, IntegrationFailureCode.CredentialStorage); }
       this.assertCurrent(lifetime);
-      if (serialized === null) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+      if (serialized === null) {
+        if (!this.dependencies.resumeAuthorization) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+        this.progress(SpotifyLoginStage.Authorizing, lifetime);
+        const grant = await withCancellation(this.dependencies.resumeAuthorization(lifetime.signal), lifetime.signal);
+        this.assertCurrent(lifetime);
+        return this.accept(grant, null, lifetime);
+      }
       const saved = decodeLibrespotLogin(serialized);
       this.progress(SpotifyLoginStage.Authorizing, lifetime);
       const grant = await withCancellation(this.dependencies.authentication.restore(saved.storedCredential, lifetime.signal), lifetime.signal);
@@ -91,12 +101,14 @@ export class LibrespotLoginSession implements SpotifyLoginProvider {
 
   async logout(): Promise<void> {
     this.input = null;
+    this.authorizationAvailable = false;
     this.retireMemory();
     await this.clearSavedLogin();
   }
 
   dispose(): void {
     this.input = null;
+    this.authorizationAvailable = false;
     this.disposed = true;
     this.retireMemory();
   }

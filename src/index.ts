@@ -10,6 +10,7 @@ export * from './session/RecordingQueueCoordinator';
 export * from '../contracts/authentication';
 export * from './authentication/SpotifyLoginSession';
 export * from './authentication/LibrespotLoginSession';
+export * from './authentication/LibrespotDeviceAuthorization';
 export { hasSavedLibrespotLogin } from './authentication/LibrespotSavedLogin';
 export * from './authentication/SpotifyAuthorizationRedirect';
 export { loadSpotifyLoginConfiguration } from './authentication/SpotifySavedLogin';

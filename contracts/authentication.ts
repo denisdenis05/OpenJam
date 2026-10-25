@@ -1,4 +1,4 @@
-import type { Clock, HttpExecutor, SpotifyCredentialProvider, SpotifyCredentials } from './network';
+import type { Clock, Scheduler, HttpExecutor, SpotifyCredentialProvider, SpotifyCredentials } from './network';
 
 export interface SpotifyLoginProvider extends SpotifyCredentialProvider {
   readonly authenticationMethod?: SpotifyLoginMethod;
@@ -23,12 +23,32 @@ export interface LibrespotSessionGrant extends SpotifyCredentials {
 export interface LibrespotAuthentication {
   login(input: LibrespotLoginInput, cancellation: AbortSignal): Promise<LibrespotSessionGrant>;
   restore(storedCredential: string, cancellation: AbortSignal): Promise<LibrespotSessionGrant>;
+  bootstrap?(accessToken: string, cancellation: AbortSignal): Promise<LibrespotSessionGrant>;
 }
 
 export interface LibrespotLoginDependencies {
   readonly authentication: LibrespotAuthentication;
   readonly credentialStore: SpotifyLoginCredentialStore;
   readonly clock: Clock;
+  readonly onProgress?: (stage: SpotifyLoginStage) => void;
+  readonly authorize?: (cancellation: AbortSignal) => Promise<LibrespotSessionGrant>;
+  readonly resumeAuthorization?: (cancellation: AbortSignal) => Promise<LibrespotSessionGrant>;
+}
+
+export interface LibrespotDeviceAuthorizationView {
+  readonly userCode: string;
+  readonly verificationAddress: string;
+  readonly expiresAtMilliseconds: number;
+}
+
+export interface LibrespotDeviceAuthorizationDependencies {
+  readonly requests: HttpExecutor;
+  readonly clock: Clock;
+  readonly scheduler: Scheduler;
+  readonly authorizationStore: SpotifyLoginCredentialStore;
+  readonly bootstrap: (accessToken: string, cancellation: AbortSignal) => Promise<LibrespotSessionGrant>;
+  readonly openVerificationPage: (address: string, cancellation: AbortSignal) => Promise<void>;
+  readonly onAuthorization?: (authorization: LibrespotDeviceAuthorizationView) => void;
   readonly onProgress?: (stage: SpotifyLoginStage) => void;
 }
 

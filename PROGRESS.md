@@ -1,3 +1,32 @@
+# Browser-assisted email-code login — 2026-10-25
+
+Implemented primary device authorization through Spotify's browser page. The
+user can use email-code or another supported login method there; password login
+remains optional. Pairing and email codes are distinct. The app's pending-device
+credential is private, account-owned and secure; only public pairing metadata
+reaches UI snapshots.
+
+The library broker validates Spotify responses/verification URLs, persists before
+browser opening, polls at the server interval, increases/persists slow_down delay,
+checks expiry and handles denial, cancellation, malformed/transient responses and
+native handoff. Pending approval resumes when the Jam screen is reopened after
+restart. Token success consumes pending state before native bootstrap, with no
+OAuth token saved. A failed/interrupted consumed handoff needs fresh sign-in.
+
+The existing session provider now accepts password-free authorization/resume
+strategies and shares native grant validation, durable storage and renewal. Native
+bootstrap uses the fixed eligible desktop identity; saved restoration preserves
+that identity or the existing platform password identity and rejects others.
+The controller bypasses public profile gating and separates approval/bootstrap/
+private Jam failures. All four namespaces retire together on cancel/forget.
+
+Live initialization through the real broker succeeded; its observer canceled
+before opening a browser, polling a token or authenticating an account. Local
+validation and APK evidence are in VALIDATION.md and the mobile progress notes.
+Completed live approval, native bootstrap and Jam admission remain phone gates.
+No automatic cold-start navigation or direct in-app email-code entry is added.
+Existing guest/playback/background limitations remain open.
+
 # Independent Librespot authentication — 2026-10-25
 
 Implemented LibrespotLoginSession behind injected native authentication, secure
