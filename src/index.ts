@@ -46,3 +46,5 @@ export * from './session/JamSessionClient';
 export * from './session/SpotifyHttpJamProtocol';
 export * from './session/SpotifyWebQueueProtocol';
 export * from './session/SpotifyQueueTrack';
+export * from '../contracts/connectCommands';
+export * from './connect/SpotifyConnectCommandProtocols';

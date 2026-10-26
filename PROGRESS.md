@@ -1,3 +1,24 @@
+# Typed native command adapters — 2026-10-26
+
+Added an injected account-bound Connect command port and native playback/append
+adapters. Command inputs are copied and validated before dispatch. Queue intents
+carry distinct occurrence identifiers, without claiming Spotify retains those IDs
+or provides exactly-once delivery. The existing session coordinator still owns
+membership/host-role checks, ordering, deduplication and uncertain-result fences.
+Five new dedicated cases and the full 566-case library suite pass.
+
+Mobile composes these adapters for native-login sessions. Kotlin reserves each
+request before worker queuing, and Rust checks fresh active-host, restrictions,
+seek-track and duration state before one mutation dispatch. Scoped cancellation
+before dispatch prevents mutation; cancellation after dispatch reports uncertainty.
+Native, Android and source-store tests cover retirement, capacity and stale work.
+This is not yet verified guest queue permission or synchronized local audio.
+
+The prior live observer processes have ended. A new interactive probe (85329)
+registered successfully after browser approval; cached playback has no active
+host yet. Waiting for Spotify playback before explicit native command tests.
+The delivered APK still predates this chapter; a new bundle/assembly is required.
+
 # Fresh native playback events observed — 2026-10-26
 
 After user playback, the independently registered native observer received new

@@ -79,3 +79,10 @@ Mock endpoint success does not prove live guest participation. Join/leave
 capabilities can be explicitly enabled as experimental operations; all other
 unsupported capabilities remain false. A MusicBrainz result also does not imply
 local audio availability.
+
+## Native command adapters
+
+`tests/connect-commands.test.mjs` covers immutable account/host binding, queue
+occurrence input, malformed commands/targets/tracks, cancellation before identity
+allocation and uncertain failures without fallback/retry. Native preflight and
+Android lifecycle cases are mapped in mobile native CONNECT_TRANSPORT.md.
