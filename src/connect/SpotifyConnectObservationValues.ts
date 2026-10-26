@@ -57,8 +57,9 @@ export function decodeSpotifyConnectObservation(value: unknown, boundary: Spotif
   const serverTime = natural(cluster.serverAtMilliseconds); const timestamp = natural(state.timestampMilliseconds);
   const position = natural(state.positionAsOfTimestampMilliseconds); const duration = natural(state.durationMilliseconds);
   if (serverTime < timestamp || serverTime === ConnectObservationPolicy.zero || duration === ConnectObservationPolicy.zero || position > duration) return invalid();
-  if (state.playbackSpeed !== ConnectObservationPolicy.ordinaryPlaybackSpeed) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
   const paused = boolean(state.paused); const buffering = boolean(state.buffering); const playing = boolean(state.playing) && !paused && !buffering;
+  if (state.playbackSpeed !== ConnectObservationPolicy.ordinaryPlaybackSpeed
+    && (state.playbackSpeed !== ConnectObservationPolicy.zero || playing)) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
   const elapsed = playing ? serverTime - timestamp : ConnectObservationPolicy.zero;
   const estimatedPosition = position + elapsed;
   if (!Number.isSafeInteger(estimatedPosition)) return invalid();

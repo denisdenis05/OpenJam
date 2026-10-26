@@ -1,3 +1,5 @@
+import type { SpotifyConnectMetadataPort } from '../contracts/connectMetadata';
+import { SpotifyConnectCatalog } from './connect/SpotifyConnectCatalog';
 import type { AssociationStore, CatalogSong, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
 import type { Clock, HttpExecutor, Scheduler, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
 import type { HostedQueueReader } from '../contracts/hostedQueue';
@@ -28,6 +30,7 @@ import { samePlaybackIdentity } from './playback/SharedPlaybackTiming';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
+  readonly connectMetadata?: SpotifyConnectMetadataPort;
   readonly credentials: SpotifyCredentialProvider;
   readonly endpoints: SpotifyEndpointResolver;
   readonly recordings: RecordingCatalog;
@@ -68,7 +71,9 @@ export class SpotifyJamRuntime {
     this.credentials = new SpotifyCredentialSession(dependencies.accountIdentifier, dependencies.credentials, dependencies.clock);
     const requests = new SpotifyRequestClient(dependencies.requests, this.credentials);
     this.playbackReader = dependencies.playbackReader ?? (dependencies.playbackClock ? new SpotifyWebPlaybackReader(requests, dependencies.playbackClock) : null);
-    this.translator = new TrackTranslator(dependencies.recordings, new SpotifyWebCatalog(requests),
+    const webCatalog = new SpotifyWebCatalog(requests);
+    const spotifyCatalog = dependencies.connectMetadata ? new SpotifyConnectCatalog(dependencies.connectMetadata, webCatalog, dependencies.accountIdentifier) : webCatalog;
+    this.translator = new TrackTranslator(dependencies.recordings, spotifyCatalog,
       new CandidateRanker(dependencies.matchingPolicy), dependencies.associations);
     this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);
     this.sessions.attachAccount(dependencies.accountIdentifier,

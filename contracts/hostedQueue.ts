@@ -17,6 +17,8 @@ export enum HostedQueueItemKind {
 
 export interface HostedQueueItem {
   readonly uri: string;
+  readonly occurrenceIdentifier?: string | null;
+  readonly provider?: string;
   readonly title: string;
   readonly author: string;
   readonly kind: HostedQueueItemKind;
@@ -24,6 +26,7 @@ export interface HostedQueueItem {
 }
 
 export interface HostedQueueResponse {
+  readonly queueRevision?: string;
   readonly currentlyPlaying: HostedQueueItem | null;
   readonly entries: readonly HostedQueueItem[];
 }

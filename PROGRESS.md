@@ -1,3 +1,29 @@
+# Private metadata and revision-checked queue display — 2026-10-26
+
+Native-login Spotify song lookup now uses the registered account's private
+metadata port. Catalog search retains the existing search adapter. The library
+checks exact returned identities and copies title/artists/duration/recording
+codes; explicit not-found results become absent songs without lookup fallback.
+Queue display resolves unique song IDs in batches of at most 20, preserving
+repeated occurrence IDs, provider and revision. It rechecks host/generation,
+queue revision and current occurrence after metadata lookup before publishing.
+The existing display bound remains 100 next entries; raw observation has the
+larger native queue. Episode metadata remains unsupported on this native path.
+
+The complete library suite passes 584 cases. New connect-metadata cases cover
+projection, bounds, lookup/search routing, missing songs, queue deduplication and
+order, cancellation, revision changes, batch limits and preservation of optional
+wire identities by hosted queue copying. Live native metadata succeeded for the
+cached paused track: nonempty title, one artist, duration and one recording code.
+No song details or identifiers are exported by diagnostic artifacts.
+
+Live paused Spotify state reports playback speed zero. A reproducing case now
+accepts zero speed only while not progressing; a zero-speed actively progressing
+sample remains unsupported until actual protocol evidence supports it. Guest
+admission, actual queue commands/audio, host publication and native background
+playback remain open in IMPLEMENTATION_QUEUE.md. Mobile progress has live handle,
+checks and packaging state; the goal remains active.
+
 # Private playback observations — 2026-10-26
 
 Added a typed native observation boundary and decoder. Each observation binds the

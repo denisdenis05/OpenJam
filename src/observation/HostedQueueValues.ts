@@ -16,6 +16,15 @@ function boundedText(value: unknown): string {
   return text;
 }
 
+const TextType = 'string';
+const ControlText = /[\u0000-\u001f\u007f]/;
+function provider(value: string): string {
+  if (typeof value !== TextType || value.length > HostedQueuePolicy.maximumTextCharacters || ControlText.test(value)) {
+    throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+  }
+  return value;
+}
+
 function duration(value: unknown): number | null {
   if (value === undefined || value === null) return null;
   if (!Number.isSafeInteger(value) || (value as number) < HostedQueuePolicy.minimumDurationMilliseconds) {
@@ -31,7 +40,10 @@ export function copyHostedQueueItem(item: HostedQueueItem): HostedQueueItem {
   if ((item.kind !== HostedQueueItemKind.Track && item.kind !== HostedQueueItemKind.Episode)
     || !match || match[HostedQueuePolicy.uriKindPosition] !== item.kind) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
   return Object.freeze({ uri, kind: item.kind, title: boundedText(item.title), author: boundedText(item.author),
-    durationMilliseconds: duration(item.durationMilliseconds) });
+    durationMilliseconds: duration(item.durationMilliseconds),
+    ...(item.occurrenceIdentifier === undefined ? {} : { occurrenceIdentifier: item.occurrenceIdentifier === null ? null : boundedText(item.occurrenceIdentifier) }),
+    ...(item.provider === undefined ? {} : { provider: provider(item.provider) }),
+  });
 }
 
 export function copyHostedQueueResponse(response: HostedQueueResponse): HostedQueueResponse {
@@ -40,7 +52,9 @@ export function copyHostedQueueResponse(response: HostedQueueResponse): HostedQu
   const entries = arrayValue(response.entries);
   if (entries.length > HostedQueuePolicy.maximumItems) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
   return Object.freeze({ currentlyPlaying: response.currentlyPlaying === null ? null : copyHostedQueueItem(response.currentlyPlaying),
-    entries: Object.freeze(entries.map(item => copyHostedQueueItem(item as HostedQueueItem))) });
+    entries: Object.freeze(entries.map(item => copyHostedQueueItem(item as HostedQueueItem))),
+    ...(response.queueRevision === undefined ? {} : { queueRevision: boundedText(response.queueRevision) }),
+  });
 }
 
 function decodeItem(value: unknown): HostedQueueItem {

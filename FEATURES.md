@@ -96,3 +96,12 @@ missing occurrence and unsupported speed. The native reader forwards its bound
 account/host. `tests/hosted-playback.test.mjs` verifies runtime reader injection
 retains source occurrence/buffering without public player requests. Existing
 membership/account retirement guards still apply to this injected reader.
+
+## Private metadata and queue projection
+
+`tests/connect-metadata.test.mjs` covers immutable exact-identity projection,
+invalid response/request bounds, private lookup with delegated search, explicit
+not-found, repeated-song deduplication with distinct occurrences, queue revision
+change, cancellation after observation, preservation of revision/empty provider,
+and bounded batches preserving order. `tests/connect-observation.test.mjs` adds
+the live paused-zero-speed regression and rejects active zero-speed samples.

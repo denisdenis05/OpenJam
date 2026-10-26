@@ -51,3 +51,7 @@ export * from './connect/SpotifyConnectCommandProtocols';
 export * from '../contracts/connectObservation';
 export * from './connect/SpotifyConnectObservationValues';
 export * from './connect/SpotifyConnectPlaybackReader';
+export * from '../contracts/connectMetadata';
+export * from './connect/SpotifyConnectMetadataValues';
+export * from './connect/SpotifyConnectCatalog';
+export * from './connect/SpotifyConnectHostedQueueReader';

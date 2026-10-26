@@ -71,3 +71,11 @@ test(Fixture.names.reader, async () => {
   assert.equal(await reader.read(Fixture.host, abort.signal), sample.playback);
   assert.deepEqual(calls, [[Values.accountIdentifier, Fixture.host, abort.signal]]);
 });
+
+const PausedSpeedFixture = Object.freeze({ name: 'Live paused zero-speed Spotify state remains readable without advancing or enabling local audio' });
+test(PausedSpeedFixture.name, () => {
+  const value = response(); value.reading.cluster.playback.paused = true; value.reading.cluster.playback.playbackSpeed = Fixture.zero;
+  const sample = decode(value); assert.equal(sample.playback.playing, false); assert.equal(sample.playback.positionMilliseconds, Fixture.sourcePosition);
+  value.reading.cluster.playback.paused = false;
+  assert.throws(() => decode(value), failure(library.IntegrationFailureCode.Unsupported));
+});
