@@ -86,3 +86,13 @@ local audio availability.
 occurrence input, malformed commands/targets/tracks, cancellation before identity
 allocation and uncertain failures without fallback/retry. Native preflight and
 Android lifecycle cases are mapped in mobile native CONNECT_TRANSPORT.md.
+
+## Private observation boundary
+
+`tests/connect-observation.test.mjs` covers server/monotonic time separation,
+uncertainty, pause/buffering, duration clamp, repeated-track occurrence identity,
+immutable queue values, handle/generation/host checks, invalid or slow clocks,
+missing occurrence and unsupported speed. The native reader forwards its bound
+account/host. `tests/hosted-playback.test.mjs` verifies runtime reader injection
+retains source occurrence/buffering without public player requests. Existing
+membership/account retirement guards still apply to this injected reader.

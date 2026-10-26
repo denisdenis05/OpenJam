@@ -92,3 +92,20 @@ test(Fixture.names.changedAccount, async () => { const current = runtimeFixture(
   createOrActivate: async () => ({ session: { identifier: Values.sessionIdentifier, ownedByCurrentAccount: true, active: true, participants: [], hostDeviceIdentifier: Fixture.host }, invitation: null }), end: async () => undefined });
   await current.runtime.sessions.createOrActivateSession(Values.createRequestIdentifier); await assert.rejects(current.runtime.readHostedPlayback(cancellation().signal), failure(library.IntegrationFailureCode.Superseded));
   assert.equal(current.state.requests.length, Fixture.zero); current.runtime.dispose(); });
+const NativeReaderFixture = Object.freeze({ occurrence: 'native-occurrence',
+  name: 'Runtime uses an injected native playback reader and preserves source occurrence and buffering without public requests' });
+test(NativeReaderFixture.name, async () => {
+  const calls = [];
+  const current = runtimeFixture({ playbackReader: { read: async (hostDeviceIdentifier, signal) => {
+    calls.push({ hostDeviceIdentifier, signal });
+    return { spotifyTrackIdentifier: Fixture.track, occurrenceIdentifier: NativeReaderFixture.occurrence, buffering: true,
+      positionMilliseconds: Fixture.position, durationMilliseconds: Fixture.duration, playing: false,
+      anchorMonotonicMilliseconds: Fixture.midpoint, observedMonotonicMilliseconds: Fixture.returned,
+      uncertaintyMilliseconds: Fixture.uncertainty, stateChangedAtUnixMilliseconds: Fixture.oldChange };
+  } } });
+  await current.runtime.sessions.createOrActivateSession(Values.createRequestIdentifier);
+  const sample = await current.runtime.readHostedPlayback(cancellation().signal);
+  assert.equal(sample.occurrenceIdentifier, NativeReaderFixture.occurrence); assert.equal(sample.buffering, true);
+  assert.equal(calls.length, Fixture.one); assert.equal(calls[Fixture.zero].hostDeviceIdentifier, Fixture.host);
+  assert.equal(current.state.requests.length, Fixture.zero); current.runtime.dispose();
+});

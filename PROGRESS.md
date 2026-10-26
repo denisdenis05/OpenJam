@@ -1,3 +1,21 @@
+# Private playback observations — 2026-10-26
+
+Added a typed native observation boundary and decoder. Each observation binds the
+native handle, generation and actual active host; contains a fresh native request
+interval; preserves raw queue order/provider/occurrence IDs and queue revision;
+and derives playback position from Spotify server time and player anchor time.
+JavaScript brackets the entire native request and retains uncertainty. Native and
+JavaScript monotonic origins are never subtracted. Slow, malformed, superseded,
+unsupported-speed and unidentified-occurrence samples cannot drive audio.
+
+Runtime now accepts an injected playback reader. Native composition uses it,
+while existing owned-membership guards remain. Samples can carry occurrence IDs
+and buffering; the mobile follower preserves both. Repeated entries of the same
+song now prepare separate executions without repeating the matching lookup.
+Six new observation tests and one runtime injection case bring the library suite
+to 573 cases. Mobile progress records native/Android/source checks and live clock
+evidence. Active playback and second-account guest verification remain pending.
+
 # Typed native command adapters — 2026-10-26
 
 Added an injected account-bound Connect command port and native playback/append

@@ -19,7 +19,7 @@ import { SpotifyWebHostedQueueReader } from './observation/SpotifyWebHostedQueue
 import { JamMembershipObserver } from './observation/JamMembershipObserver';
 import { SpotifyWebPlaybackReader } from './playback/SpotifyWebPlaybackReader';
 import type { SharedPlaybackClock, SharedPlaybackIdentity } from '../contracts/sharedPlayback';
-import type { HostedPlaybackSample } from '../contracts/hostedPlayback';
+import type { HostedPlaybackSample, HostedPlaybackReader } from '../contracts/hostedPlayback';
 import { IntegrationFailureCode } from '../contracts/network';
 import { JamConnectionStatus } from '../contracts/session';
 import { checkCancellation, failureCode, IntegrationFailure } from './network/IntegrationFailure';
@@ -45,6 +45,7 @@ export interface SpotifyJamDependencies {
   readonly enableMembershipObservation?: boolean;
   readonly membershipRequestIdentifiers?: () => string;
   readonly playbackClock?: SharedPlaybackClock;
+  readonly playbackReader?: HostedPlaybackReader;
   readonly enableHostedPlaybackCommands?: boolean;
   readonly playbackCommandProtocol?: HostedPlaybackCommandProtocol;
 }
@@ -57,7 +58,7 @@ export class SpotifyJamRuntime {
   private readonly lifetime = new AbortController();
   private readonly credentials: SpotifyCredentialSession;
   private readonly translator: TrackTranslator;
-  private readonly playbackReader: SpotifyWebPlaybackReader | null;
+  private readonly playbackReader: HostedPlaybackReader | null;
   private readonly recordings: RecordingCatalog;
   private readonly accountIdentifier: string;
 
@@ -66,7 +67,7 @@ export class SpotifyJamRuntime {
     this.recordings = dependencies.recordings;
     this.credentials = new SpotifyCredentialSession(dependencies.accountIdentifier, dependencies.credentials, dependencies.clock);
     const requests = new SpotifyRequestClient(dependencies.requests, this.credentials);
-    this.playbackReader = dependencies.playbackClock ? new SpotifyWebPlaybackReader(requests, dependencies.playbackClock) : null;
+    this.playbackReader = dependencies.playbackReader ?? (dependencies.playbackClock ? new SpotifyWebPlaybackReader(requests, dependencies.playbackClock) : null);
     this.translator = new TrackTranslator(dependencies.recordings, new SpotifyWebCatalog(requests),
       new CandidateRanker(dependencies.matchingPolicy), dependencies.associations);
     this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);

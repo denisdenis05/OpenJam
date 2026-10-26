@@ -48,3 +48,6 @@ export * from './session/SpotifyWebQueueProtocol';
 export * from './session/SpotifyQueueTrack';
 export * from '../contracts/connectCommands';
 export * from './connect/SpotifyConnectCommandProtocols';
+export * from '../contracts/connectObservation';
+export * from './connect/SpotifyConnectObservationValues';
+export * from './connect/SpotifyConnectPlaybackReader';
