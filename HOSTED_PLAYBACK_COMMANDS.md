@@ -30,9 +30,12 @@ Play/Pause/Seek use PUT and Next/Previous use POST, with explicit device_id.
 Acknowledgement must be empty. Permission/rate-limit rejections remain typed.
 Transport failure after dispatch, server failures and malformed acknowledgements
 have UnknownOutcome and are never retried automatically. The connection's
-playback outcome fence survives membership refresh; inspect Spotify playback,
-then reconnect before another command. Reads failing before mutation retain their
-original failure category.
+playback outcome fence survives passive membership refresh. An injected
+sharedStateVerifier enables explicit sessions.reconcileSharedState recovery after
+fresh owned membership and native state verification. A new deliberate command
+uses a new request identifier; old uncertain receipts remain unchanged. Reads
+failing before mutation retain their original failure category. See
+SHARED_STATE_RECONCILIATION.md.
 
 The mobile Jam screen exposes explicit host controls and a seconds-based seek
 input. Seek captures the current track before submitting and the adapter checks

@@ -45,8 +45,13 @@ Explicit owned-host Play/Pause/Next/Previous/Seek commands also use this
 coordinator. They require an active owned session and its current host, copy
 intents on submission and cancel preflight when that target changes. A fresh
 playback read precedes mutation; seek rechecks track identity and duration.
-Playback uncertainty has its own connection-lifetime fence, which membership
-refresh cannot clear. See HOSTED_PLAYBACK_COMMANDS.md.
+Playback and queue uncertainty have separate fences, which passive membership
+refresh cannot clear. An injected JamSharedStateVerifier enables explicit
+reconcileSharedState: the same serialized coordinator reads fresh owned active
+account membership, verifies native shared state for its captured account/session/host,
+then reads membership again. Only complete success clears both fences. Cancellation,
+identity changes and failed verification preserve the fences and stored mutation
+receipts. No uncertain request is replayed. See HOSTED_PLAYBACK_COMMANDS.md.
 
 ## Credentials and requests
 

@@ -2,6 +2,7 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Explicit shared-state reconciliation, unchanged passive fences, queue/playback receipt retention, membership/account/host guards, serialized ordering, duplicate requests, cancellation, native revision/occurrence validation and runtime injection | `tests/shared-state-reconciliation.test.mjs` (26 cases) |
 | Explicit immutable native credential handoff after durable acknowledgement, renewal rotation, cancellation, logout/disposal and stale renewal | `tests/librespot-login.test.mjs` (five native-handoff cases) |
 | Android connection ownership, strict native decoding, account/generation fencing, cleanup barriers/retry and native join device selection | Mobile `SpotifyConnectOwnerTest.kt`, `SpotifyConnectNativeExecutionTest.kt`, `tools/spotify-connect-store.test.cjs`, `tools/spotify-mobile.test.cjs` |
 | Android Connect event platform and separate registration/control-only UI | Mobile `tools/spotify-connect-platform.test.ts`, `tools/spotify-screen.test.tsx` |

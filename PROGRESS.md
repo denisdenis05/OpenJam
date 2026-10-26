@@ -1,3 +1,36 @@
+# Explicit shared-state recovery — 2026-10-26
+
+Implemented an optional account-bound JamSharedStateVerifier and
+sessions.reconcileSharedState(requestIdentifier, cancellation?). The serialized
+read-only recovery works while Uncertain, verifies fresh owned active membership
+before and after native shared-state verification, then clears both queue and
+playback outcome fences. Passive membership refresh cannot clear those fences.
+Old unknown mutation receipts remain stored and are never replayed. New deliberate
+mutations require new request identifiers. Failure, cancellation and changed
+account/session/host prevent recovery from clearing protections.
+
+SpotifyConnectSharedStateVerifier requires a fresh validated observation for the
+bound account and actual host, a real nonempty queue revision and current occurrence,
+and matching playback occurrence. It preserves raw queue interpretation and does
+not infer guest permission or fabricate remote identifiers. Runtime dependency
+injection and the capability flag expose availability without performing a read
+at construction. SHARED_STATE_RECONCILIATION.md records the contract.
+
+Validation: npm run check and npm run build passed source checks and strict
+TypeScript compilation. npm test passed 612 deterministic cases across 28 files,
+including 26 new dedicated recovery/native verification cases. The cases cover
+both uncertainty fences together, old receipt retention, passive protection,
+failures and membership changes at each stage, queued ordering, deduplication,
+account replacement, cancellation and ignored late native responses. git diff
+--check passed. This chapter changes only the library and its documentation.
+
+Mobile composition/UI and actual live interrupted-command recovery are separate
+checks. Guest admission/permission, synchronized local audio, app-led hosting,
+continuous background operation and physical-device behavior remain unfinished.
+The implementation queue preserves the separately reported live same-account
+command/append and server acknowledgement evidence. Continue the Android recovery
+composition and live verification; do not replay a prior uncertain command.
+
 # Live native queue reads and structural markers — 2026-10-26
 
 The composed library observation decoder and private queue reader now pass a live

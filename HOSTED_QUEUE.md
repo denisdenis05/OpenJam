@@ -52,11 +52,13 @@ rejects late completions without ending the remote Jam.
 
 No queue mutation is automatically retried. Network failure, timeout, server
 error or malformed success can mean Spotify received the item. An unknown queue
-outcome blocks further queue submissions for that connection's lifetime.
-Membership refresh can reconcile membership uncertainty but cannot prove queue
-contents and does not clear this queue fence. Inspect the official Spotify queue,
-then explicitly disconnect/reconnect before issuing a new queue intent. Reusing
-the old request identifier in the same lifetime returns its old uncertain receipt.
+outcome blocks further queue submissions until explicit shared-state reconciliation
+succeeds or the connection is replaced. Passive membership refresh cannot prove
+queue contents and does not clear this queue fence. Supply sharedStateVerifier
+and call sessions.reconcileSharedState with a new request identifier to verify
+fresh owned membership, native shared state, and membership again. Reusing the
+old mutation identifier still returns its old uncertain receipt; a later deliberate
+queue intent requires a new identifier. See SHARED_STATE_RECONCILIATION.md.
 
 ## Private protocol findings and verification
 

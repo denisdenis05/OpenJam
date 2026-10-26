@@ -55,3 +55,5 @@ export * from '../contracts/connectMetadata';
 export * from './connect/SpotifyConnectMetadataValues';
 export * from './connect/SpotifyConnectCatalog';
 export * from './connect/SpotifyConnectHostedQueueReader';
+export * from '../contracts/sharedStateReconciliation';
+export * from './connect/SpotifyConnectSharedStateVerifier';

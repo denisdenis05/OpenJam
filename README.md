@@ -126,8 +126,13 @@ current account's credentials. Desktop debugging is not part of this package.
 `refreshCurrentSession` uses the verified passive
 `GET /social-connect/v2/sessions/current` endpoint and requires no device lookup.
 HTTP 404 means no current session; malformed successful JSON remains an error.
-It can reconcile an uncertain mutation through the same account guards as device
-refresh. The live check covered an owned session, not cross-account guest state.
+It can reconcile membership uncertainty through the same account guards as device
+refresh. Queue and playback unknown-outcome fences survive this passive read.
+Inject sharedStateVerifier and call sessions.reconcileSharedState with a new
+request identifier for explicit fresh membership/native-state/membership recovery.
+Old mutation receipts remain unchanged; recovery does not replay them. See
+[shared-state recovery](SHARED_STATE_RECONCILIATION.md). The live membership check
+covered an owned session, not cross-account guest state.
 
 ## Catalog records
 

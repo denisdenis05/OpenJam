@@ -1,3 +1,4 @@
+import type { JamSharedStateVerifier } from '../contracts/sharedStateReconciliation';
 import type { SpotifyConnectMetadataPort } from '../contracts/connectMetadata';
 import { SpotifyConnectCatalog } from './connect/SpotifyConnectCatalog';
 import type { AssociationStore, CatalogSong, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
@@ -31,6 +32,7 @@ import { samePlaybackIdentity } from './playback/SharedPlaybackTiming';
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
   readonly connectMetadata?: SpotifyConnectMetadataPort;
+  readonly sharedStateVerifier?: JamSharedStateVerifier;
   readonly credentials: SpotifyCredentialProvider;
   readonly endpoints: SpotifyEndpointResolver;
   readonly recordings: RecordingCatalog;
@@ -80,7 +82,7 @@ export class SpotifyJamRuntime {
       new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership),
       dependencies.enableHostedQueue ? dependencies.queueProtocol ?? new SpotifyWebQueueProtocol(requests) : null,
       dependencies.enableHostedPlaybackCommands ? dependencies.playbackCommandProtocol
-        ?? (this.playbackReader ? new SpotifyWebPlaybackCommandProtocol(requests, this.playbackReader) : null) : null);
+        ?? (this.playbackReader ? new SpotifyWebPlaybackCommandProtocol(requests, this.playbackReader) : null) : null, dependencies.sharedStateVerifier);
     this.recordingQueue = new RecordingQueueCoordinator(this.translator, this.sessions);
     this.hostedQueue = new HostedQueueObserver(this.sessions, dependencies.hostedQueueReader ?? new SpotifyWebHostedQueueReader(requests),
       dependencies.clock, dependencies.enableHostedQueueObservation, dependencies.scheduler);

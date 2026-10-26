@@ -1,3 +1,22 @@
+# Explicit shared-state recovery — 2026-10-26
+
+npm test passed 612 cases across 28 files, including 26 dedicated cases in
+tests/shared-state-reconciliation.test.mjs. The command includes source-standard
+checks and strict TypeScript compilation. npm run check, npm run build and
+git diff --check passed separately.
+
+Recovery checks fresh owned account/session/host membership before and after an
+injected native verifier. Tests establish queue/playback fence clearing only on
+complete success, retained unknown receipts, unchanged passive refresh, failure
+and identity fencing, queued ordering, duplicate/conflicting requests, capability
+availability, runtime forwarding and cancellation at each asynchronous stage.
+Native verifier cases check account/host binding, actual revision/current
+occurrence, generation, cancellation and failed observations without retry.
+
+This is deterministic library verification. No live interrupted-command recovery,
+guest participation, synchronized audio, background lifecycle or physical-device
+result is established by these cases. See SHARED_STATE_RECONCILIATION.md.
+
 # Owned-host playback controls and live Jam lifecycle — 2026-10-25
 
 Implemented explicit Play/Pause/Next/Previous/Seek through the existing bounded

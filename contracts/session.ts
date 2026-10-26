@@ -73,4 +73,5 @@ export interface JamCapabilities {
   readonly observe: boolean;
   readonly queue: boolean;
   readonly playbackControl: boolean;
+  readonly reconcileSharedState: boolean;
 }

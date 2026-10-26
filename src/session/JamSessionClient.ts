@@ -1,6 +1,9 @@
 import { IntegrationFailureCode } from '../../contracts/network';
 import { JamConnectionStatus, JamJoinMode } from '../../contracts/session';
 import type { ExternalStore, JamCapabilities, JamCommandResult, JamInvitation, JamProtocol, JamSnapshot } from '../../contracts/session';
+import type { JamSharedStateVerifier } from '../../contracts/sharedStateReconciliation';
+import type { SharedPlaybackIdentity } from '../../contracts/sharedPlayback';
+import type { JamSessionResponse } from '../../contracts/session';
 import type { JamQueueProtocol } from '../../contracts/queue';
 import type { HostedPlaybackCommand, HostedPlaybackCommandProtocol } from '../../contracts/hostedPlaybackCommands';
 import { copyHostedPlaybackCommand } from '../playback/HostedPlaybackCommandValues';
@@ -9,11 +12,11 @@ import { combineCancellation, withCancellation } from '../network/Cancellation';
 import { validateSpotifyQueueTrack } from './SpotifyQueueTrack';
 
 export const VerifiedJamCapabilities: JamCapabilities = Object.freeze({
-  createOrActivate: true, end: true, refresh: false, resolveInvitation: false, join: false, leave: false, observe: false, queue: false, playbackControl: false,
+  createOrActivate: true, end: true, refresh: false, resolveInvitation: false, join: false, leave: false, observe: false, queue: false, playbackControl: false, reconcileSharedState: false,
 });
 const CommandPolicy = Object.freeze({ maximumPendingCommands: 16, emptyCount: 0, commandCount: 1,
   completedRequestLimit: 64, firstPosition: 0, createOperation: 'create', endOperation: 'end', refreshOperation: 'refresh',
-  joinOperation: 'join', leaveOperation: 'leave', refreshCurrentOperation: 'refresh-current', addQueueOperation: 'add-queue', playbackOperation: 'playback', minimumRetrySeconds: 0 });
+  joinOperation: 'join', leaveOperation: 'leave', refreshCurrentOperation: 'refresh-current', addQueueOperation: 'add-queue', playbackOperation: 'playback', reconcileOperation: 'reconcile-shared-state', minimumRetrySeconds: 0 });
 
 interface SessionOwnership {
   readonly accountIdentifier: string;
@@ -26,6 +29,7 @@ interface SessionOwnership {
   queueOutcomeUnknown: boolean;
   readonly playback: HostedPlaybackCommandProtocol | null;
   playbackOutcomeUnknown: boolean;
+  readonly sharedStateVerifier: JamSharedStateVerifier | null;
 }
 
 export class JamSessionClient implements ExternalStore<JamSnapshot> {
@@ -35,7 +39,8 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       join: this.experimentalMembership && this.ownership?.protocol.join !== undefined,
       leave: this.experimentalMembership && this.ownership?.protocol.leave !== undefined,
       queue: this.ownership?.queue !== undefined && this.ownership.queue !== null,
-      playbackControl: this.ownership?.playback !== undefined && this.ownership.playback !== null });
+      playbackControl: this.ownership?.playback !== undefined && this.ownership.playback !== null,
+      reconcileSharedState: this.ownership?.sharedStateVerifier != null && this.ownership.protocol.readCurrentAccount !== undefined });
   }
   private ownership: SessionOwnership | null = null;
   private invitation: JamInvitation | null = null;
@@ -53,11 +58,11 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
   };
 
   attachAccount(accountIdentifier: string, protocol: JamProtocol, queue: JamQueueProtocol | null = null,
-    playback: HostedPlaybackCommandProtocol | null = null): void {
+    playback: HostedPlaybackCommandProtocol | null = null, sharedStateVerifier: JamSharedStateVerifier | null = null): void {
     if (!accountIdentifier.trim()) throw new IntegrationFailure(IntegrationFailureCode.InvalidInput);
     this.detachAccount();
     this.ownership = { accountIdentifier, protocol, cancellation: new AbortController(), operations: new Map(),
-      pending: CommandPolicy.emptyCount, tail: Promise.resolve(), queue, queueOutcomeUnknown: false, playback, playbackOutcomeUnknown: false };
+      pending: CommandPolicy.emptyCount, tail: Promise.resolve(), queue, queueOutcomeUnknown: false, playback, playbackOutcomeUnknown: false, sharedStateVerifier };
     this.publish({ accountIdentifier, status: JamConnectionStatus.Ready, session: null, failure: null });
   }
 
@@ -217,6 +222,47 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
         this.invitation = response?.invitation ? Object.freeze({ ...response.invitation }) : null;
         const session = response ? Object.freeze({ ...response.session,
           participants: Object.freeze(response.session.participants.map(participant => Object.freeze({ ...participant }))) }) : null;
+        this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session, failure: null });
+      } finally { scope.dispose(); }
+    }, true, undefined, cancellation);
+  }
+
+  reconcileSharedState(requestIdentifier: string, cancellation?: AbortSignal): Promise<JamCommandResult> {
+    const expected = this.snapshot;
+    return this.submit(requestIdentifier, CommandPolicy.reconcileOperation, async ownership => {
+      if (!ownership.sharedStateVerifier || !ownership.protocol.readCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      const scope = combineCancellation(ownership.cancellation.signal, cancellation ?? ownership.cancellation.signal);
+      const requireIdentity = (response: JamSessionResponse | null): SharedPlaybackIdentity => {
+        checkCancellation(scope.signal);
+        if (ownership !== this.ownership || this.snapshot.accountIdentifier !== expected.accountIdentifier
+          || this.snapshot.session?.identifier !== expected.session?.identifier
+          || this.snapshot.session?.hostDeviceIdentifier !== expected.session?.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        const session = response?.session;
+        if (!session || !expected.session || session.identifier !== expected.session.identifier
+          || session.hostDeviceIdentifier !== expected.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        if (!session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+        if (!session.active || !session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+        return Object.freeze({ accountIdentifier: ownership.accountIdentifier, sessionIdentifier: session.identifier,
+          authorityIdentifier: session.hostDeviceIdentifier });
+      };
+      try {
+        checkCancellation(scope.signal);
+        if (!expected.session) throw new IntegrationFailure(IntegrationFailureCode.NotFound);
+        if (!expected.session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+        if (!expected.session.active || !expected.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+        const before = await withCancellation(ownership.protocol.readCurrentAccount(scope.signal), scope.signal);
+        const identity = requireIdentity(before);
+        await withCancellation(ownership.sharedStateVerifier.verify(identity, scope.signal), scope.signal);
+        requireIdentity(before);
+        const after = await withCancellation(ownership.protocol.readCurrentAccount(scope.signal), scope.signal);
+        requireIdentity(after);
+        if (!after) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        const invitation = after.invitation ? Object.freeze({ ...after.invitation }) : null;
+        const session = Object.freeze({ ...after.session,
+          participants: Object.freeze(after.session.participants.map(participant => Object.freeze({ ...participant }))) });
+        ownership.queueOutcomeUnknown = false;
+        ownership.playbackOutcomeUnknown = false;
+        this.invitation = invitation;
         this.publish({ accountIdentifier: ownership.accountIdentifier, status: JamConnectionStatus.Ready, session, failure: null });
       } finally { scope.dispose(); }
     }, true, undefined, cancellation);
