@@ -5,6 +5,7 @@ import { IntegrationFailure } from '../network/IntegrationFailure';
 export const ConnectObservationPolicy = Object.freeze({ zero: 0, firstIdentifier: 1, maximumIdentifierCharacters: 2048,
   maximumTracks: 2000, maximumRoundTripMilliseconds: 1500, midpointDivisor: 2, nativeClockPrecisionMilliseconds: 1,
   ordinaryPlaybackSpeed: 1, stringType: 'string', objectType: 'object', booleanType: 'boolean',
+  spotifyUriPrefix: 'spotify:', metadataUriPrefix: 'spotify:meta:', delimiterUri: 'spotify:delimiter',
   trackPattern: /^spotify:track:([A-Za-z0-9]{22})$/, mediaPattern: /^spotify:(track|episode):[A-Za-z0-9]{22}$/,
   controlPattern: /[\u0000-\u001f\u007f]/ } as const);
 
@@ -28,7 +29,7 @@ function boolean(value: unknown): boolean {
 }
 function track(value: unknown): SpotifyConnectTrack {
   const item = object(value); const uri = text(item.uri);
-  if (!ConnectObservationPolicy.mediaPattern.test(uri)) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+  if (!uri.startsWith(ConnectObservationPolicy.spotifyUriPrefix)) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
   return Object.freeze({ uri, occurrenceIdentifier: item.occurrenceIdentifier === null ? null : text(item.occurrenceIdentifier), provider: text(item.provider, true) });
 }
 function tracks(value: unknown): readonly SpotifyConnectTrack[] {

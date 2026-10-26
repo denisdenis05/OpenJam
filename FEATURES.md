@@ -105,3 +105,10 @@ not-found, repeated-song deduplication with distinct occurrences, queue revision
 change, cancellation after observation, preservation of revision/empty provider,
 and bounded batches preserving order. `tests/connect-observation.test.mjs` adds
 the live paused-zero-speed regression and rejects active zero-speed samples.
+
+## Structural queue markers
+
+connect-observation.test.mjs preserves meta/delimiter entries while accepting a
+playable current track. connect-metadata.test.mjs skips those structural entries
+before metadata batching and preserves the remaining song occurrence order.
+Live composed observation/queue reading succeeded after these regressions.

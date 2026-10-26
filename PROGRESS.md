@@ -1,3 +1,26 @@
+# Live native queue reads and structural markers — 2026-10-26
+
+The composed library observation decoder and private queue reader now pass a live
+read against the independently registered session and a running official desktop
+peer. One capture had 50 raw next entries, 48 displayed songs, three metadata
+batches covering 49 songs including current, preserved occurrence order, and
+71.739192 ms playback-read uncertainty. This is library/protocol verification,
+not measured local audio synchronization or physical APK execution.
+
+Live nextTracks contains spotify:meta entries and spotify:delimiter markers.
+The raw observation must preserve those opaque Spotify entries; rejecting every
+non-media URI incorrectly blocked a valid currently playing song. The displayed
+queue now skips only these known structural marker types before metadata lookup.
+Two reproducing cases bring the complete library suite to 586 cases.
+
+Native pause/resume succeeded against the desktop host after correcting hidden
+observer acknowledgement in mobile. A controlled append of the actual currently
+playing Spotify song produced one new queue-provider occurrence and a changed
+revision on the same host. Spotify replaced the supplied occurrence UUID, and
+sessionCommandIdentifier did not echo the logging request UUID. Reconciliation
+must use authoritative server occurrence IDs; client IDs are local intents.
+Actual guest admission, local audio and app-led hosting remain open.
+
 # Private metadata and revision-checked queue display — 2026-10-26
 
 Native-login Spotify song lookup now uses the registered account's private

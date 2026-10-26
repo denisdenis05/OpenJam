@@ -6,6 +6,7 @@ import type { HostedQueueItem, HostedQueueReader, HostedQueueResponse } from '..
 import { IntegrationFailureCode } from '../../contracts/network';
 import { checkCancellation, IntegrationFailure } from '../network/IntegrationFailure';
 import { HostedQueuePolicy } from '../observation/HostedQueueValues';
+import { ConnectObservationPolicy } from './SpotifyConnectObservationValues';
 import { ConnectMetadataPolicy } from './SpotifyConnectMetadataValues';
 
 const Policy = Object.freeze({ firstPosition: 0, trackPrefix: 'spotify:track:' } as const);
@@ -19,7 +20,8 @@ export class SpotifyConnectHostedQueueReader implements HostedQueueReader {
     const observation = await this.observations.read(this.accountIdentifier, hostDeviceIdentifier, cancellation);
     checkCancellation(cancellation);
     if (observation.hostDeviceIdentifier !== hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
-    const entries = observation.nextTracks.slice(Policy.firstPosition, HostedQueuePolicy.maximumItems);
+    const entries = observation.nextTracks.filter(track => track.uri !== ConnectObservationPolicy.delimiterUri
+      && !track.uri.startsWith(ConnectObservationPolicy.metadataUriPrefix)).slice(Policy.firstPosition, HostedQueuePolicy.maximumItems);
     const tracks = [observation.currentTrack, ...entries];
     const identifiers = [...new Set(tracks.map(track => {
       if (!track.uri.startsWith(Policy.trackPrefix)) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);

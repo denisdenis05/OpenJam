@@ -101,3 +101,19 @@ test(MissingFixture.name, async () => {
     { lookup: async () => { throw new Error(Fixture.names.catalog); } }, Values.accountIdentifier);
   assert.equal(await catalog.lookup(Values.spotifyIdentifier, Values.market, cancellation().signal), null);
 });
+
+const QueueMarkerFixture = Object.freeze({ metadata: 'spotify:meta:repeat', delimiter: 'spotify:delimiter',
+  name: 'Queue display removes known structural markers before requesting metadata while retaining repeated song order' });
+test(QueueMarkerFixture.name, async () => {
+  const observation = observe(); const first = observation.nextTracks[Fixture.zero];
+  observation.nextTracks = [{ ...first, uri: QueueMarkerFixture.metadata }, first,
+    { ...first, uri: QueueMarkerFixture.delimiter }, observation.nextTracks[Fixture.one]];
+  const calls = [];
+  const reader = new library.SpotifyConnectHostedQueueReader({ read: async () => observation }, { readMetadata: async (_accountIdentifier, requested) => {
+    calls.push(requested); return requested.map(identifier => song({ identifier }));
+  } }, Values.accountIdentifier);
+  const queue = await reader.read(Fixture.host, cancellation().signal);
+  assert.equal(queue.entries.length, Fixture.two); assert.deepEqual(calls, [[Values.spotifyIdentifier]]);
+  assert.equal(queue.entries[Fixture.zero].occurrenceIdentifier, Fixture.occurrence);
+  assert.equal(queue.entries[Fixture.one].occurrenceIdentifier, Fixture.secondOccurrence);
+});

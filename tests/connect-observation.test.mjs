@@ -79,3 +79,14 @@ test(PausedSpeedFixture.name, () => {
   value.reading.cluster.playback.paused = false;
   assert.throws(() => decode(value), failure(library.IntegrationFailureCode.Unsupported));
 });
+
+const MarkerFixture = Object.freeze({ metadata: 'spotify:meta:repeat', delimiter: 'spotify:delimiter',
+  name: 'Non-media queue markers remain in raw observations without preventing a playable current track sample' });
+test(MarkerFixture.name, () => {
+  const value = response(); const next = value.reading.cluster.playback.nextTracks;
+  value.reading.cluster.playback.nextTracks = [{ ...next[Fixture.zero], uri: MarkerFixture.metadata },
+    { ...next[Fixture.one], uri: MarkerFixture.delimiter }, ...next];
+  const observed = decode(value); assert.equal(observed.playback.playing, true);
+  assert.equal(observed.nextTracks[Fixture.zero].uri, MarkerFixture.metadata);
+  assert.equal(observed.nextTracks[Fixture.one].uri, MarkerFixture.delimiter);
+});
