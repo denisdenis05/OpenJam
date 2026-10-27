@@ -11,8 +11,8 @@ player and owned-host control guards are preserved.
 | 1 | Persistent native AP/Dealer connection, Connect device registration, reliable guest join/leave, permissions and recovery | In progress: native transport/Android ownership implemented; hidden observer registration live verified; guest admission pending | Independently registered device; successful second-account control/remote admission; leave/kick/reconnect/role changes reflected correctly |
 | 2 | Guest shared queue commands, occurrence identities, ordering and uncertain/competing edit reconciliation | In progress: same-account native controls/append live confirmed with server Dealer acknowledgements; private metadata/queue reads live checked; explicit library/mobile uncertainty recovery implemented and packaged; live recovery and guest permission remain | Accepted guest mutations correlated with observed host/guest queue updates; repeated tracks and interrupted receipts handled without duplicate edits |
 | 3 | Fresh guest playback events, local-media synchronization, permitted remote controls and reconnect | In progress: bounded private reads and occurrence-aware foreground follower wired; guest audio/timing unverified | Track changes, pause/resume, seek and skip work across accounts; simultaneous local/Spotify audio checked and timing measured |
-| 4 | App-led hosting and publication of local track/position/queue state | Queued | Spotify participant follows the app's playback authority using app catalog audio; incoming controls are acknowledged after accepted player actions |
-| 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | Queued | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
+| 4 | App-led hosting and publication of local track/position/queue state | In progress: guarded native publication encoder/transport tested; initial activation, real incoming command execution and service composition remain | Spotify participant follows the app's playback authority using app catalog audio; incoming controls are acknowledged after accepted player actions |
+| 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | In progress: application-owned connection, player service port, native follower and verified source components tested; background resolver/authentication and app handoff remain | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
 | 6 | iOS native Librespot login/integration | Deferred by user | Outside current objective |
 
 ## Execution rules
@@ -52,3 +52,26 @@ merely because a Dealer connection survives React detachment.
 
 See mobile SPOTIFY_INTEGRATION_PROGRESS.md for concrete build/probe checkpoints
 and library FEATURES.md for each feature's dedicated tests.
+
+## Native integration continuation — 2026-10-27
+
+The next implementation chapter composes the tested native follower with the
+actual service binding and a complete recording resolver. Resolve previously
+unseen Spotify songs through private metadata and the same conservative app
+catalog matcher. A bounded headless task can reuse the existing matcher and
+StreamingService cookie/JWT renewal; it must be request/account/Jam/generation
+fenced and cannot depend on a mounted screen. A preloaded mapping cache alone
+would not satisfy the goal. Native observation, timing, lease renewal and audio
+control remain independent of JavaScript timers.
+
+Finish the native account/credential lifecycle, exact teardown and visible-action
+handoff before removing the existing background-stop guard. Use actual player
+readiness, respect the user's local pause, protect source clock domains and pause
+on missing/ambiguous media. The responsive Dealer actor must continue handling
+incoming commands while bounded HTTP work is pending; mutations never replay.
+
+Hosting still requires explicit initial activation, accepted incoming player
+actions and real local state publication. Publication encoding and a registered
+observer do not establish a playable host. Cross-account admission/permissions,
+phone installation, measured simultaneous audio and screen-lock/network/renewal
+checks are separate acceptance requirements and remain unproved.
