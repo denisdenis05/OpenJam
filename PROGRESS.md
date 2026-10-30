@@ -1,3 +1,20 @@
+# Native catalog search composition — 2026-10-30
+
+Added optional account-bound `SpotifyConnectSearchPort`, bounded query capture,
+strict generation/handle result decoding and native catalog routing. Native
+search preserves explicit unplayability, rejects duplicate/unsafe results and
+accepts verified empty results. Configured native search does not fall back to
+the browser token route on permission failures. Browser-only callers retain
+the supplied search catalog. Mobile composes this port through its JNI bridge.
+
+Verification: `npm test` passed 619 deterministic cases, including seven dedicated
+search cases in `tests/connect-search.test.mjs`; build and architecture checks
+passed as part of the test command. Mobile passed 422 Node, 95 Jest and 103
+focused Connect Android JVM cases; full mobile TypeScript passed. These are
+source checks. Live current-session search permission still awaits approval of
+the retained diagnostic pairing. No APK rebuilt yet; remaining host/background
+source work comes before packaging.
+
 # App action handoff to native following — 2026-10-30
 
 Mobile `147eb76` routes device-sign-in following through the native Android

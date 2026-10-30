@@ -1,3 +1,4 @@
+import type { SpotifyConnectSearchPort } from '../contracts/connectSearch';
 import type { JamSharedStateVerifier } from '../contracts/sharedStateReconciliation';
 import type { SpotifyConnectMetadataPort } from '../contracts/connectMetadata';
 import { SpotifyConnectCatalog } from './connect/SpotifyConnectCatalog';
@@ -31,6 +32,7 @@ import { samePlaybackIdentity } from './playback/SharedPlaybackTiming';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
+  readonly connectSearch?: SpotifyConnectSearchPort;
   readonly connectMetadata?: SpotifyConnectMetadataPort;
   readonly sharedStateVerifier?: JamSharedStateVerifier;
   readonly credentials: SpotifyCredentialProvider;
@@ -74,7 +76,7 @@ export class SpotifyJamRuntime {
     const requests = new SpotifyRequestClient(dependencies.requests, this.credentials);
     this.playbackReader = dependencies.playbackReader ?? (dependencies.playbackClock ? new SpotifyWebPlaybackReader(requests, dependencies.playbackClock) : null);
     const webCatalog = new SpotifyWebCatalog(requests);
-    const spotifyCatalog = dependencies.connectMetadata ? new SpotifyConnectCatalog(dependencies.connectMetadata, webCatalog, dependencies.accountIdentifier) : webCatalog;
+    const spotifyCatalog = dependencies.connectMetadata ? new SpotifyConnectCatalog(dependencies.connectMetadata, webCatalog, dependencies.accountIdentifier, dependencies.connectSearch) : webCatalog;
     this.translator = new TrackTranslator(dependencies.recordings, spotifyCatalog,
       new CandidateRanker(dependencies.matchingPolicy), dependencies.associations);
     this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);

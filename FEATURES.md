@@ -114,3 +114,6 @@ connect-observation.test.mjs preserves meta/delimiter entries while accepting a
 playable current track. connect-metadata.test.mjs skips those structural entries
 before metadata batching and preserves the remaining song occurrence order.
 Live composed observation/queue reading succeeded after these regressions.
+
+Native account-bound search, bounded inputs, empty results, playable flags,
+malformed results and transport routing: `tests/connect-search.test.mjs`.

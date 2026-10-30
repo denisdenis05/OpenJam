@@ -1,4 +1,5 @@
 import type { CatalogSearch, SpotifyCatalog, SpotifySong } from '../../contracts/catalog';
+import type { SpotifyConnectSearchPort } from '../../contracts/connectSearch';
 import type { SpotifyConnectMetadataPort } from '../../contracts/connectMetadata';
 import { IntegrationFailureCode } from '../../contracts/network';
 import { validateSpotifyQueueTrack } from '../session/SpotifyQueueTrack';
@@ -8,7 +9,7 @@ const Policy = Object.freeze({ marketPattern: /^[A-Z]{2}$/, firstPosition: 0, si
 
 export class SpotifyConnectCatalog implements SpotifyCatalog {
   constructor(private readonly metadata: SpotifyConnectMetadataPort, private readonly searchCatalog: SpotifyCatalog,
-    private readonly accountIdentifier: string) {}
+    private readonly accountIdentifier: string, private readonly nativeSearch?: SpotifyConnectSearchPort) {}
 
   async lookup(identifier: string, market: string, cancellation: AbortSignal): Promise<SpotifySong | null> {
     checkCancellation(cancellation);
@@ -27,6 +28,7 @@ export class SpotifyConnectCatalog implements SpotifyCatalog {
   }
 
   search(search: CatalogSearch, market: string, cancellation: AbortSignal): Promise<readonly SpotifySong[]> {
-    return this.searchCatalog.search(search, market, cancellation);
+    return this.nativeSearch ? this.nativeSearch.search(this.accountIdentifier, search, market, cancellation)
+      : this.searchCatalog.search(search, market, cancellation);
   }
 }
