@@ -2,6 +2,8 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Native host readiness, original command deadlines, actual player receipts, serialized dispatch, periodic queue publication, lifecycle fences and queue-independent withdrawal | Mobile `SpotifyHostCommandEventDecoderTest`, `SpotifyHostCommandDispatcherTest`, `SpotifyHostCoordinatorTest`, `SpotifyHostNativeSessionTest`, `SpotifyHostConfigurationProtocolTest`, `SpotifyHostConnectionEventsTest`, `SpotifyHostNativeTransportTest`, `SpotifyHostPlayerPortTest`; native `connect_actor`, `connect_bridge`, `connect_publication` |
+| Approved current-session native catalog diagnostic without account/song logging | Mobile `tools/spotify-native-search-probe.test.cjs`; live search returned backpressure, so availability remains unresolved |
 | Explicit native/foreground following route, exclusive cleanup, actual native handoff/player-epoch receipt, background guards, account/token updates, scoped restoration, local suspension, late completions and native events | Mobile `tools/spotify-native-follower-store.test.cjs`, `tools/spotify-playback-controller.test.cjs`, `tools/spotify-jam-playback-platform.test.ts`, `tools/player-native-ownership.test.cjs`; detailed mapping in `SPOTIFY_NATIVE_FOLLOWER_HANDOFF.md` |
 | Explicit shared-state reconciliation, unchanged passive fences, queue/playback receipt retention, membership/account/host guards, serialized ordering, duplicate requests, cancellation, native revision/occurrence validation and runtime injection | `tests/shared-state-reconciliation.test.mjs` (26 cases) |
 | Explicit immutable native credential handoff after durable acknowledgement, renewal rotation, cancellation, logout/disposal and stale renewal | `tests/librespot-login.test.mjs` (five native-handoff cases) |

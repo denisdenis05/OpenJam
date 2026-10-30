@@ -1,3 +1,28 @@
+# Native host source checkpoint and approved probe result — 2026-10-31
+
+The user approved the native pairing. Read-only current-state and native metadata
+checks succeeded. Two native public catalog searches returned the safe failure
+`backpressure`; search availability is still unresolved. This does not establish
+an HTTP status or whether actor occupancy or throttling caused the failure.
+The probe owner disappeared across an interrupted turn. Its leftover socket is
+not a registered session, and no Spotify process was stopped by implementation.
+
+Mobile source chapters now include verified follower reconnect, bounded headless
+app credential renewal, actual host queue projection, typed activation/publication,
+receipt-based incoming command dispatch, native deadlines, periodic coordination,
+queue-preserving host sessions and queue-independent native withdrawal. Latest
+mobile source commit: `d25864d`. Runtime/application/module composition and explicit
+JavaScript host controls still remain. Current native capabilities stay gated on
+an actually attached command handler. No new APK was built before integration.
+
+Verification in the mobile owner repository: full native Cargo suite 230 cases;
+all Android app JVM suites 385 cases; Spotify JavaScript 433 Node and 99 Jest
+cases; full TypeScript passed. These source checks do not prove live app hosting,
+actual guest admission, shared audio timing or screen-lock/Doze/network behavior.
+Second-account/device acceptance remains open. See mobile
+SPOTIFY_INTEGRATION_PROGRESS.md and SPOTIFY_APP_HOSTING.md for feature mapping and
+exact source commands. This library checkpoint changes documentation only.
+
 # Native catalog search composition — 2026-10-30
 
 Added optional account-bound `SpotifyConnectSearchPort`, bounded query capture,
