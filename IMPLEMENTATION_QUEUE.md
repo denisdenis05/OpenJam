@@ -10,9 +10,9 @@ player and owned-host control guards are preserved.
 | --- | --- | --- | --- |
 | 1 | Persistent native AP/Dealer connection, Connect device registration, reliable guest join/leave, permissions and recovery | In progress: native transport/Android ownership implemented; hidden observer registration live verified; guest admission pending | Independently registered device; successful second-account control/remote admission; leave/kick/reconnect/role changes reflected correctly |
 | 2 | Guest shared queue commands, occurrence identities, ordering and uncertain/competing edit reconciliation | In progress: same-account native controls/append live confirmed with server Dealer acknowledgements; private metadata/queue reads live checked; explicit library/mobile uncertainty recovery implemented and packaged; live recovery and guest permission remain | Accepted guest mutations correlated with observed host/guest queue updates; repeated tracks and interrupted receipts handled without duplicate edits |
-| 3 | Fresh guest playback events, local-media synchronization, permitted remote controls and reconnect | In progress: bounded private reads and occurrence-aware foreground follower wired; guest audio/timing unverified | Track changes, pause/resume, seek and skip work across accounts; simultaneous local/Spotify audio checked and timing measured |
+| 3 | Fresh guest playback events, local-media synchronization, permitted remote controls and reconnect | In progress: bounded private reads, foreground following and explicit Android native following handoff are wired; automatic reconnect and guest audio/timing remain | Track changes, pause/resume, seek and skip work across accounts; simultaneous local/Spotify audio checked and timing measured |
 | 4 | App-led hosting and publication of local track/position/queue state | In progress: guarded native publication encoder/transport tested; initial activation, real incoming command execution and service composition remain | Spotify participant follows the app's playback authority using app catalog audio; incoming controls are acknowledged after accepted player actions |
-| 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | In progress: application-owned connection, player service port, native follower, background resolver, headless task and account handoff integrated and source-tested | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
+| 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | In progress: application-owned connection, native follower, headless resolver, app controls and verified player-epoch ownership receipt integrated; background continuation requires acknowledged native ownership | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
 | 6 | iOS native Librespot login/integration | Deferred by user | Outside current objective |
 
 ## Native and headless source checkpoint — 2026-10-30
@@ -79,8 +79,10 @@ fenced and cannot depend on a mounted screen. A preloaded mapping cache alone
 would not satisfy the goal. Native observation, timing, lease renewal and audio
 control remain independent of JavaScript timers.
 
-Finish the native account/credential lifecycle, exact teardown and visible-action
-handoff before removing the existing background-stop guard. Use actual player
+The native account/credential handoff, exact teardown and visible app actions
+are composed in mobile `147eb76`. Pending handoff and browser following still
+stop in the background; only acknowledged native ownership with a verified app
+receipt may continue. Continue physical lifecycle and renewal acceptance. Use actual player
 readiness, respect the user's local pause, protect source clock domains and pause
 on missing/ambiguous media. The responsive Dealer actor must continue handling
 incoming commands while bounded HTTP work is pending; mutations never replay.

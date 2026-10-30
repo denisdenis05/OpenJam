@@ -2,6 +2,7 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Explicit native/foreground following route, exclusive cleanup, actual native handoff/player-epoch receipt, background guards, account/token updates, scoped restoration, local suspension, late completions and native events | Mobile `tools/spotify-native-follower-store.test.cjs`, `tools/spotify-playback-controller.test.cjs`, `tools/spotify-jam-playback-platform.test.ts`, `tools/player-native-ownership.test.cjs`; detailed mapping in `SPOTIFY_NATIVE_FOLLOWER_HANDOFF.md` |
 | Explicit shared-state reconciliation, unchanged passive fences, queue/playback receipt retention, membership/account/host guards, serialized ordering, duplicate requests, cancellation, native revision/occurrence validation and runtime injection | `tests/shared-state-reconciliation.test.mjs` (26 cases) |
 | Explicit immutable native credential handoff after durable acknowledgement, renewal rotation, cancellation, logout/disposal and stale renewal | `tests/librespot-login.test.mjs` (five native-handoff cases) |
 | Android connection ownership, strict native decoding, account/generation fencing, cleanup barriers/retry and native join device selection | Mobile `SpotifyConnectOwnerTest.kt`, `SpotifyConnectNativeExecutionTest.kt`, `tools/spotify-connect-store.test.cjs`, `tools/spotify-mobile.test.cjs` |

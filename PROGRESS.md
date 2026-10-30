@@ -1,3 +1,27 @@
+# App action handoff to native following — 2026-10-30
+
+Mobile `147eb76` routes device-sign-in following through the native Android
+runtime. Browser sign-in retains foreground following. Startup waits for the
+real native player lease, verifies the actual player epochs/authority, and
+persists the app account/server/epoch ownership receipt before background
+continuation. Scoped account, host and generation changes retire following;
+local suspension requires explicit restart. Both previous playback authorities
+must finish cleanup before another start. The native view handles matching
+retained-session adoption and rejects stale startup or restoration completions.
+
+Verification: mobile `npm run test:spotify` passed 413 Node and 95 Jest cases;
+`npm run test:player-mobile` passed 329 cases; full mobile TypeScript passed;
+focused Android Jam playback compilation and 22 JVM cases passed. Dedicated
+mapping is in mobile `SPOTIFY_NATIVE_FOLLOWER_HANDOFF.md`; packaging is recorded
+in mobile `SPOTIFY_JAM_APK.md`. No library runtime or player-engine selection
+changed. These are source checks, with no new live session or phone evidence.
+
+Next: verified same-Jam recovery across native reconnect generations, followed
+by app-led hosting activation, accepted incoming actions and real state
+publication. Guest permissions, audible synchronization, screen lock/network/
+token renewal and process-death behavior remain open. A fresh approved native
+probe is needed for the current-session catalog search check.
+
 # Android background resolver and native search composition — 2026-10-30
 
 Mobile commit `58e5aa4` integrates the application-owned Jam playback runtime,
