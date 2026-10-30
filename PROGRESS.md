@@ -1,3 +1,21 @@
+# Android background resolver and native search composition — 2026-10-30
+
+Mobile commit `58e5aa4` integrates the application-owned Jam playback runtime,
+native follower/player binding, bounded background recording broker and
+React Native headless task registration. The native Rust catalog search and
+app-led activation gate are included. Mobile commit `4ad6f5c` records the
+release artifact and verification evidence; mobile APK size is 35,636,788 bytes
+with SHA-256 `9aabd47ba313b7fbc4d9f15b31d54fe3f5089fb5337236fe1d1ecfb23be4ce71`.
+
+Source verification passed: 67 focused Rust cases, 108 Android JVM cases,
+364 mobile Node cases, 92 Jest cases, TypeScript checking and Android Metro
+bundle generation. APK signature and 16 KB ZIP/native ELF alignment checks pass.
+The native probe is no longer registered and `adb devices -l` found no device;
+live catalog permission, installation, audible playback, guest role behavior,
+hosting, reconnect and background lifecycle are not verified. Continue from
+`IMPLEMENTATION_QUEUE.md` and `StreamingServiceMobile/SPOTIFY_INTEGRATION_PROGRESS.md`.
+Do not treat the release APK or source tests as real-device evidence.
+
 # Explicit shared-state recovery — 2026-10-26
 
 Implemented an optional account-bound JamSharedStateVerifier and
