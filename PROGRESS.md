@@ -1,3 +1,27 @@
+# Integrated mobile hosting and packaged APK — 2026-10-31
+
+Mobile source `e82ea20` now composes the retained host owner, real player and
+native transport, scoped background authentication/recording tasks, explicit app
+hosting controls, actual queue/epoch capture and exclusive following/hosting.
+New local recordings use bounded background matching; audio pauses while matching
+and Play afterward remains explicit. Native HTTP contention uses a bounded queue
+and revalidates scope/authority at dispatch without repeating HTTP requests.
+
+The ARM64 release APK is built and recorded in mobile SPOTIFY_JAM_APK.md:
+35,886,828 bytes; SHA-256
+`7bfcc1ea616f7c0275a811fd1204d30ee95e67501533c1583b6863057730afa0`.
+Release assembly, v2 signature and 16 KB ZIP/native alignment checks passed.
+Source verification passed 235 Rust, 409 Android JVM, 451 Spotify Node, 105 Jest,
+329 player/mobile and 619 library cases, plus full app TypeScript. No library
+implementation changed in this chapter; this is a documentation checkpoint.
+
+No Android device is attached and installation, guest admission/permissions,
+shared audio timing and physical background lifecycle remain unverified. A fresh
+host read-only probe awaits new pairing; its earlier approved process had ended.
+The earlier two live native catalog backpressure results remain failures; the
+contention source fix is not proof of live permission or an HTTP diagnosis.
+Mobile SPOTIFY_JAM_ACCEPTANCE.md lists the required actual-device scenarios.
+
 # Native host source checkpoint and approved probe result — 2026-10-31
 
 The user approved the native pairing. Read-only current-state and native metadata

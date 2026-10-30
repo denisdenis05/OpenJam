@@ -11,9 +11,19 @@ player and owned-host control guards are preserved.
 | 1 | Persistent native AP/Dealer connection, Connect device registration, reliable guest join/leave, permissions and recovery | In progress: native transport/Android ownership implemented; hidden observer registration live verified; guest admission pending | Independently registered device; successful second-account control/remote admission; leave/kick/reconnect/role changes reflected correctly |
 | 2 | Guest shared queue commands, occurrence identities, ordering and uncertain/competing edit reconciliation | In progress: same-account native controls/append live confirmed with server Dealer acknowledgements; private metadata/queue reads live checked; explicit library/mobile uncertainty recovery implemented and packaged; live recovery and guest permission remain | Accepted guest mutations correlated with observed host/guest queue updates; repeated tracks and interrupted receipts handled without duplicate edits |
 | 3 | Fresh guest playback events, local-media synchronization, permitted remote controls and reconnect | In progress: bounded private reads, foreground following and explicit Android native following handoff are wired; verified native reconnect implemented in source; guest audio/timing remain | Track changes, pause/resume, seek and skip work across accounts; simultaneous local/Spotify audio checked and timing measured |
-| 4 | App-led hosting and publication of local track/position/queue state | In progress: typed activation, native command deadlines/dispatch, actual queue publication, host coordinator/session and safe withdrawal implemented in source; application/module/JS composition and live hosting remain | Spotify participant follows the app's playback authority using app catalog audio; incoming controls are acknowledged after accepted player actions |
+| 4 | App-led hosting and publication of local track/position/queue state | In progress: retained application/module/task composition, explicit JS controls, actual queue capture/publication and background matching integrated and packaged; live hosting remains | Spotify participant follows the app's playback authority using app catalog audio; incoming controls are acknowledged after accepted player actions |
 | 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | In progress: application-owned connection, native follower, headless resolver, app controls and verified player-epoch ownership receipt integrated; background continuation requires acknowledged native ownership | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
 | 6 | iOS native Librespot login/integration | Deferred by user | Outside current objective |
+
+## Integrated source and APK checkpoint — 2026-10-31
+
+Mobile source `e82ea20` integrates the app hosting action, retained runtime, native
+module/headless routing, real queue capture and background reverse matching.
+Release artifact, source commands and checksum are in mobile SPOTIFY_JAM_APK.md.
+Source checks passed: 235 Rust, 409 JVM, 451 Node, 105 Jest, 329 player/mobile,
+619 library and full mobile TypeScript. Installation and actual guest/device
+acceptance remain open as listed in mobile SPOTIFY_JAM_ACCEPTANCE.md. Native
+catalog permission is unresolved; a new read-only probe is awaiting fresh pairing.
 
 ## Latest host source checkpoint — 2026-10-31
 
