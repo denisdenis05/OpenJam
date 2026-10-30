@@ -15,6 +15,21 @@ player and owned-host control guards are preserved.
 | 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | In progress: application-owned connection, player service port, native follower and verified source components tested; background resolver/authentication and app handoff remain | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
 | 6 | iOS native Librespot login/integration | Deferred by user | Outside current objective |
 
+## Native and headless source checkpoint — 2026-10-30
+
+The mobile repository now contains the bounded native public catalog-search path,
+application-owned follower runtime, Android background recording broker and
+React Native headless task registration. Dedicated Rust/JVM/JS source checks pass;
+the ARM64 release APK is recorded in `StreamingServiceMobile/SPOTIFY_JAM_APK.md`.
+The current-session search probe was absent and there was no attached Android
+device, so neither live search permission nor runtime behavior has been validated.
+
+Remaining acceptance is unchanged: live second-account admission and permissions,
+shared queue reconciliation, synchronized local audio and timing, app-led host
+activation with real state publication, same-Jam reconnect recovery, and screen-
+lock/network/token-renewal/background playback lifecycle. Do not mark those items
+complete from compilation, packaging, or the previous same-account command tests.
+
 ## Execution rules
 
 Complete independent implementation while live account/device input is pending.
