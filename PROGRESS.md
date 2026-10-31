@@ -891,3 +891,19 @@ user approval before implementation.
 Record future chapters with exact functionality tests and live/device limits.
 Keep credential material and extracted Spotify resources outside this repository.
 Commit relevant changes only in their owning repository; do not push implicitly.
+
+## Current-occurrence matching retry fence — 2026-11-01
+
+Unavailable and ambiguous current-song matches now remain held across fresh
+position observations, explicit reconciliation and upcoming-only queue changes.
+Previously a new observation sequence restarted matching despite the unavailable
+state having stopped its timer. A genuinely different current occurrence or an
+explicit replacement attachment allows one new match. Contradictory track IDs
+for the same occurrence still fail validation. Stale observations retain their
+existing pause behavior and never authorize playback.
+
+Two added fresh-observation regressions failed before the fix. Four dedicated
+new cases in `tests/shared-playback.test.mjs` cover missing/ambiguous repeated
+observations, new current occurrence and explicit attachment recovery. `npm test`
+passed architecture checks, TypeScript and 656 cases. No live playback result is
+established by these checks.

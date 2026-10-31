@@ -19,6 +19,7 @@ interface PlaybackLifetime {
   lease: SharedPlaybackLease | null;
   target: SharedPlaybackTarget | null;
   preparedOccurrence: string | null;
+  unavailableOccurrence: string | null;
   preparedTarget: SharedPlaybackTarget | null;
   resolutionCancellation: AbortController | null;
   preparedMatch: MatchResult | null;
@@ -58,7 +59,7 @@ export class SharedPlaybackSynchronizer implements SharedPlaybackFollower {
     const retired = this.retire();
     if (this.attachmentIntent !== attachmentIntent) { await retired; return; }
     const lifetime: PlaybackLifetime = { identity: captured, cancellation: new AbortController(), lease: null, target: null,
-      upcomingQueuePending: false, unavailableUpcomingCount: SharedPlaybackPolicy.emptyCount, upcomingQueueFailure: null, preparedMatch: null, queueResolutionTarget: null, resolvedQueue: null, appliedQueue: null, resolutionCancellation: null, preparedTarget: null, preparedOccurrence: null, recordingIdentifier: null, pending: null, cancelTimer: null, paused: true, failed: false, outputPending: Promise.resolve() };
+      upcomingQueuePending: false, unavailableUpcomingCount: SharedPlaybackPolicy.emptyCount, upcomingQueueFailure: null, preparedMatch: null, queueResolutionTarget: null, resolvedQueue: null, appliedQueue: null, resolutionCancellation: null, preparedTarget: null, preparedOccurrence: null, unavailableOccurrence: null, recordingIdentifier: null, pending: null, cancelTimer: null, paused: true, failed: false, outputPending: Promise.resolve() };
     this.lifetime = lifetime;
     this.publish({ ...EmptySnapshot, identity: captured, status: SharedPlaybackStatus.Waiting });
     try {
@@ -93,6 +94,7 @@ export class SharedPlaybackSynchronizer implements SharedPlaybackFollower {
       lifetime.unavailableUpcomingCount = SharedPlaybackPolicy.emptyCount;
       lifetime.upcomingQueueFailure = null;
     }
+    if (lifetime.target?.occurrenceIdentifier !== captured.occurrenceIdentifier) lifetime.unavailableOccurrence = null;
     lifetime.target = captured;
     return this.reconcile();
   }
@@ -143,6 +145,14 @@ export class SharedPlaybackSynchronizer implements SharedPlaybackFollower {
         if (lifetime.target !== target) continue;
         return;
       }
+      if (lifetime.unavailableOccurrence === target.occurrenceIdentifier) {
+        await this.hold(lifetime);
+        if (!this.canFollow(lifetime)) return;
+        if (lifetime.target !== target) continue;
+        this.update(lifetime, SharedPlaybackStatus.Unavailable);
+        if (lifetime.target !== target) continue;
+        return;
+      }
       if (!lifetime.preparedTarget || !samePlaybackQueue(lifetime.preparedTarget, target)) {
         if (lifetime.preparedOccurrence !== target.occurrenceIdentifier) await this.hold(lifetime);
         if (!this.canFollow(lifetime)) return;
@@ -155,6 +165,7 @@ export class SharedPlaybackSynchronizer implements SharedPlaybackFollower {
         if (!lifetime.target || !samePlaybackQueue(lifetime.target, target)) continue;
         if (match.status !== MatchStatus.Matched || !match.selected) {
           if (match.status === MatchStatus.Failed) throw new IntegrationFailure(match.failure ?? IntegrationFailureCode.Network);
+          lifetime.unavailableOccurrence = target.occurrenceIdentifier;
           this.update(lifetime, SharedPlaybackStatus.Unavailable);
           if (lifetime.target !== target) continue;
           return;

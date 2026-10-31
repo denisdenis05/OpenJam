@@ -342,3 +342,48 @@ test(FutureFailureFixture.name, async () => {
     await current.follower.detach();
   }
 });
+
+for (const status of [library.MatchStatus.NotFound, library.MatchStatus.Ambiguous]) {
+  test(`Fresh position and upcoming queue observations do not retry a ${status} current match`, async () => {
+    const current = fixture();
+    current.state.match = { ...current.state.match, status, selected: null };
+    await current.start();
+    await current.follower.accept(target({ sequence: Fixture.nextSequence }));
+    await current.follower.accept(target({ sequence: Fixture.lastSequence,
+      queue: { revision: QueueFixture.replacementRevision, upcomingOccurrences: [{ occurrenceIdentifier: Fixture.secondOccurrence,
+        spotifyTrackIdentifier: Fixture.secondTrackIdentifier }] } }));
+    await current.follower.reconcile();
+    assert.equal(current.state.resolutions.length, Fixture.singleCount);
+    assert.equal(current.follower.getSnapshot().status, library.SharedPlaybackStatus.Unavailable);
+    assert.equal(current.state.playing, false);
+    await current.follower.detach();
+  });
+}
+
+const UnavailableCurrentNames = Object.freeze({ replacement: 'A genuinely new current occurrence can match after the previous occurrence was unavailable',
+  attachment: 'Explicit replacement attachment permits matching the previously unavailable occurrence once' });
+test(UnavailableCurrentNames.replacement, async () => {
+  const current = fixture();
+  const matched = current.state.match;
+  current.state.match = { ...matched, status: library.MatchStatus.NotFound, selected: null };
+  await current.start();
+  current.state.match = matched;
+  await current.follower.accept(target({ sequence: Fixture.nextSequence, occurrenceIdentifier: Fixture.secondOccurrence }));
+  assert.equal(current.state.resolutions.length, Fixture.doubleCount);
+  assert.equal(current.follower.getSnapshot().status, library.SharedPlaybackStatus.Following);
+  assert.equal(current.state.playing, true);
+  await current.follower.detach();
+});
+
+test(UnavailableCurrentNames.attachment, async () => {
+  const current = fixture();
+  const matched = current.state.match;
+  current.state.match = { ...matched, status: library.MatchStatus.NotFound, selected: null };
+  await current.start();
+  await current.follower.detach();
+  current.state.match = matched;
+  await current.start();
+  assert.equal(current.state.resolutions.length, Fixture.doubleCount);
+  assert.equal(current.follower.getSnapshot().status, library.SharedPlaybackStatus.Following);
+  await current.follower.detach();
+});
