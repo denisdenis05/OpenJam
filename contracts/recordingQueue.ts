@@ -21,6 +21,7 @@ export interface RecordingQueueTranslator {
 }
 
 export interface RecordingQueueSession extends ExternalStore<JamSnapshot> {
+  readonly guestCommandsAvailable?: boolean;
   addToQueue(spotifyIdentifier: string, requestIdentifier: string): Promise<JamCommandResult>;
 }
 

@@ -49,6 +49,7 @@ export interface SpotifyJamDependencies {
   readonly enableHostedQueueObservation?: boolean;
   readonly hostedQueueReader?: HostedQueueReader;
   readonly guestObservationVerifier?: JamGuestObservationVerifier;
+  readonly guestCommandVerifier?: JamGuestObservationVerifier;
   readonly scheduler?: Scheduler;
   readonly enableMembershipObservation?: boolean;
   readonly membershipRequestIdentifiers?: () => string;
@@ -87,7 +88,7 @@ export class SpotifyJamRuntime {
       new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership),
       dependencies.enableHostedQueue ? dependencies.queueProtocol ?? new SpotifyWebQueueProtocol(requests) : null,
       dependencies.enableHostedPlaybackCommands ? dependencies.playbackCommandProtocol
-        ?? (this.playbackReader ? new SpotifyWebPlaybackCommandProtocol(requests, this.playbackReader) : null) : null, dependencies.sharedStateVerifier);
+        ?? (this.playbackReader ? new SpotifyWebPlaybackCommandProtocol(requests, this.playbackReader) : null) : null, dependencies.sharedStateVerifier, dependencies.guestCommandVerifier);
     this.recordingQueue = new RecordingQueueCoordinator(this.translator, this.sessions);
     this.hostedQueue = new HostedQueueObserver(this.sessions, dependencies.hostedQueueReader ?? new SpotifyWebHostedQueueReader(requests),
       dependencies.clock, dependencies.enableHostedQueueObservation, dependencies.scheduler, dependencies.guestObservationVerifier);

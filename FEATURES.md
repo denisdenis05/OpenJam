@@ -125,3 +125,31 @@ Live composed observation/queue reading succeeded after these regressions.
 
 Native account-bound search, bounded inputs, empty results, playable flags,
 malformed results and transport routing: `tests/connect-search.test.mjs`.
+
+## Explicit native guest commands
+
+`guestCommandVerifier` enables the explicitly composed native path for admitted
+guest playback and append requests. Fresh membership verification precedes each
+command; native source restrictions and real acknowledgements determine whether
+the mutation succeeds. Browser/default construction retains owner guards. No
+permission is cached from admission. Explicit uncertainty reconciliation verifies
+fresh guest membership before and after shared state and never replays a request.
+
+Dedicated tests: `tests/guest-commands.test.mjs` covers default denial, fresh
+verification, denial, retirement, deduplication, actual mutation rejection,
+unknown-outcome fences and deliberate guest recovery. `tests/recording-queue.test.mjs`
+covers guest recording selection reaching the guarded command path.
+
+Source checks passed 643 library cases. Cross-account acceptance, permission
+changes, queue propagation and audible timing remain live gates.
+
+## Mobile player and QR integration
+
+Actual queue-change preparation, post-receipt publication and superseded cursor
+protection: mobile `tools/player-jam-runtime.test.cjs`, `tools/player-queue-
+lifecycle.test.cjs`, `tools/spotify-player-jam.test.cjs`. Explicit player controls,
+country/role gating, retained ownership and cancel/navigation: mobile
+`tools/spotify-player-jam-screen.test.tsx`. QR generation, private invitation scope,
+quiet zone, input/matrix bounds, stale completion/share retirement and accessibility:
+mobile `tools/spotify-jam-qr.test.tsx`. Native host/follower feature maps are in
+mobile CATALOG_HOSTING_PROGRESS.md and SHARED_CONTROL_PROGRESS.md.

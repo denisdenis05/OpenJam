@@ -4,6 +4,7 @@ import { library, Values, song, deferred, flushMicrotasks } from './fixtures.mjs
 
 const Fixture = Object.freeze({ identifier: '0123456789abcdefghijkl', request: 'recording-queue-request', nextRequest: 'recording-queue-next',
   host: 'spotify-host', replacement: 'replacement-session', invalidIdentifier: '', invalidMarket: 'invalid',
+  guestAccepted: 'Explicitly composed native guest recording selection reaches the guarded session command',
   missingCandidate: 'abcdefghijkl0123456789', initialCalls: 0, oneCall: 1, firstPosition: 0 });
 const Names = Object.freeze({ matching: 'Preparing an app recording translates without confirming or enqueueing',
   explicit: 'An explicit ambiguous candidate selection confirms before host enqueue',
@@ -29,6 +30,7 @@ function fixture() {
   const coordinator = new library.RecordingQueueCoordinator({ toSpotify: async (...parameters) => {
     calls.translated += Fixture.oneCall; return state.translate(...parameters); }, confirm: async (...parameters) => {
     calls.confirmed += Fixture.oneCall; return state.confirm(...parameters); } }, {
+    get guestCommandsAvailable() { return state.guestCommandsAvailable === true; },
     getSnapshot: () => state.snapshot, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     addToQueue: async (...parameters) => { calls.queued += Fixture.oneCall; return state.queue(...parameters); },
   });
@@ -114,3 +116,14 @@ test(ReviewNames.dispatched, async () => { const current = fixture(); await prep
   assert.equal(await submitting, true); assert.equal(current.calls.queued, Fixture.oneCall); current.coordinator.dispose(); });
 test(ReviewNames.notFound, async () => { const current = fixture(); current.state.translate = async () => ({ ...match(), status: library.MatchStatus.NotFound });
   await prepare(current); assert.equal(await enqueue(current), false); assert.equal(current.calls.confirmed, Fixture.initialCalls); current.coordinator.dispose(); });
+
+test(Fixture.guestAccepted, async () => {
+  const current = fixture();
+  current.state.snapshot.session.ownedByCurrentAccount = false;
+  current.state.guestCommandsAvailable = true;
+  await prepare(current);
+  assert.equal(await enqueue(current), true);
+  assert.equal(current.calls.confirmed, Fixture.oneCall);
+  assert.equal(current.calls.queued, Fixture.oneCall);
+  current.coordinator.dispose();
+});

@@ -84,7 +84,7 @@ export class RecordingQueueCoordinator {
       }
       const session = this.sessions.getSnapshot();
       if (session.status !== JamConnectionStatus.Ready) throw new IntegrationFailure(IntegrationFailureCode.Backpressure);
-      if (!session.session?.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      if (!session.session || (!session.session.ownedByCurrentAccount && !this.sessions.guestCommandsAvailable)) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
       if (!session.session.active || !session.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
       const recordingIdentifier = this.snapshot.recordingIdentifier;
       const market = this.snapshot.market;

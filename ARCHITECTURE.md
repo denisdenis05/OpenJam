@@ -30,6 +30,16 @@ Default construction remains owner-only. The mobile native composition supplies
 actual Connect membership reads fenced by registration handle/generation. This
 read capability grants no guest queue mutation or playback-command authority.
 
+## Explicit native guest command composition
+
+An optional guestCommandVerifier enables deliberate guest append and playback
+requests. This is composed only with the mobile native command protocols. Fresh
+account/Jam/host membership and projected admission are prerequisites; actual
+source restrictions and command acknowledgements remain authoritative. Admission
+is not a cached control permission. Default/browser construction stays owner-only.
+Role/host/account changes retire preparation and dispatched uncertain outcomes
+remain fenced until explicit verified reconciliation, without replay.
+
 ## Session commands
 
 `JamSessionClient` serializes mutations, retaining up to 16 pending commands and

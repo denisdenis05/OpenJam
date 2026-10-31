@@ -1,3 +1,24 @@
+# Native guest commands, player integration and QR — 2026-10-31
+
+Implemented an explicitly composed guestCommandVerifier path for queue append,
+playback controls and uncertainty recovery. Browser/default consumers retain
+owner guards. Fresh membership is checked before dispatch; the actual native
+source restrictions and Spotify acknowledgements determine the result. Guest
+recording selection reaches the same guarded session API, and uncertain requests
+never replay. `npm test` passed all 643 cases; SHARED_CONTROL_PROGRESS.md and
+FEATURES.md map the dedicated coverage.
+
+Mobile composes the verifier only for native Connect, adds prompt/coalesced native
+following from actual Dealer events, prepares host recording mappings before
+player changes and publishes actual confirmed queue receipts. The Playing screen
+now exposes sharing/following controls; QR invitations are generated locally with
+stale-scope and privacy fences. Mobile owns these application changes and tests.
+
+The requested queue explicitly includes player-level Jam integration and QR
+connections. Physical-device verification remains postponed. Live catalog search
+has not been proven successful; a fresh diagnostic probe awaits pairing. No
+cross-account permission, audible alignment or physical scan result is claimed.
+
 # Verified guest source integration — 2026-10-31
 
 Implemented optional, fail-closed guest observation in the runtime and queue

@@ -4,6 +4,7 @@ import type { ExternalStore, JamCapabilities, JamCommandResult, JamInvitation, J
 import type { JamSharedStateVerifier } from '../../contracts/sharedStateReconciliation';
 import type { SharedPlaybackIdentity } from '../../contracts/sharedPlayback';
 import type { JamSessionResponse } from '../../contracts/session';
+import type { JamGuestObservationVerifier } from '../../contracts/hostedQueue';
 import type { JamQueueProtocol } from '../../contracts/queue';
 import type { HostedPlaybackCommand, HostedPlaybackCommandProtocol } from '../../contracts/hostedPlaybackCommands';
 import { copyHostedPlaybackCommand } from '../playback/HostedPlaybackCommandValues';
@@ -30,6 +31,7 @@ interface SessionOwnership {
   readonly playback: HostedPlaybackCommandProtocol | null;
   playbackOutcomeUnknown: boolean;
   readonly sharedStateVerifier: JamSharedStateVerifier | null;
+  readonly guestCommandVerifier: JamGuestObservationVerifier | null;
 }
 
 export class JamSessionClient implements ExternalStore<JamSnapshot> {
@@ -58,11 +60,11 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
   };
 
   attachAccount(accountIdentifier: string, protocol: JamProtocol, queue: JamQueueProtocol | null = null,
-    playback: HostedPlaybackCommandProtocol | null = null, sharedStateVerifier: JamSharedStateVerifier | null = null): void {
+    playback: HostedPlaybackCommandProtocol | null = null, sharedStateVerifier: JamSharedStateVerifier | null = null, guestCommandVerifier: JamGuestObservationVerifier | null = null): void {
     if (!accountIdentifier.trim()) throw new IntegrationFailure(IntegrationFailureCode.InvalidInput);
     this.detachAccount();
     this.ownership = { accountIdentifier, protocol, cancellation: new AbortController(), operations: new Map(),
-      pending: CommandPolicy.emptyCount, tail: Promise.resolve(), queue, queueOutcomeUnknown: false, playback, playbackOutcomeUnknown: false, sharedStateVerifier };
+      pending: CommandPolicy.emptyCount, tail: Promise.resolve(), queue, queueOutcomeUnknown: false, playback, playbackOutcomeUnknown: false, sharedStateVerifier, guestCommandVerifier };
     this.publish({ accountIdentifier, status: JamConnectionStatus.Ready, session: null, failure: null });
   }
 
@@ -143,18 +145,39 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       const session = this.snapshot.session;
       if (!session || session.identifier !== expectedSession?.identifier
         || session.hostDeviceIdentifier !== expectedSession.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
-      if (!session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      if (!session.ownedByCurrentAccount && !ownership.guestCommandVerifier) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
       if (!session.active || !session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
+      const currentTarget = () => this.snapshot.accountIdentifier === ownership.accountIdentifier
+        && this.snapshot.session?.identifier === session.identifier
+        && this.snapshot.session?.hostDeviceIdentifier === session.hostDeviceIdentifier
+        && this.snapshot.session?.active === session.active
+        && this.snapshot.session?.ownedByCurrentAccount === session.ownedByCurrentAccount
+        && (session.ownedByCurrentAccount || this.snapshot.session.participants.some(participant => participant.identifier === ownership.accountIdentifier));
+      if (!currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      const membership = new AbortController();
+      const scope = combineCancellation(ownership.cancellation.signal, membership.signal);
+      const stop = this.subscribe(() => { if (!currentTarget()) membership.abort(); });
+      let commandSubmitted = false;
       try {
+        if (!session.ownedByCurrentAccount) {
+          await withCancellation(ownership.guestCommandVerifier!.verify({ accountIdentifier: ownership.accountIdentifier,
+            sessionIdentifier: session.identifier, hostDeviceIdentifier: session.hostDeviceIdentifier }, scope.signal), scope.signal);
+          if (ownership !== this.ownership || !currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        }
+        commandSubmitted = true;
         await withCancellation(ownership.queue.addToQueue(spotifyTrackIdentifier, session.hostDeviceIdentifier,
-          ownership.cancellation.signal), ownership.cancellation.signal);
+          scope.signal), scope.signal);
+        if (ownership !== this.ownership || !currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        this.publish({ ...this.snapshot, status: JamConnectionStatus.Ready, failure: null });
       } catch (failure) {
-        if (failureCode(failure) === IntegrationFailureCode.UnknownOutcome) ownership.queueOutcomeUnknown = true;
+        if (failureCode(failure) === IntegrationFailureCode.UnknownOutcome || commandSubmitted && scope.signal.aborted) ownership.queueOutcomeUnknown = true;
         throw failure;
-      }
-      if (ownership !== this.ownership) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
-      this.publish({ ...this.snapshot, status: JamConnectionStatus.Ready, failure: null });
+      } finally { stop(); scope.dispose(); }
     });
+  }
+
+  get guestCommandsAvailable(): boolean {
+    return this.ownership?.guestCommandVerifier != null;
   }
 
   getInvitation(): JamInvitation | null {
@@ -171,7 +194,8 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       && this.snapshot.session?.identifier === expected.session?.identifier
       && this.snapshot.session?.hostDeviceIdentifier === expected.session?.hostDeviceIdentifier
       && this.snapshot.session?.active === expected.session?.active
-      && this.snapshot.session?.ownedByCurrentAccount === expected.session?.ownedByCurrentAccount;
+      && this.snapshot.session?.ownedByCurrentAccount === expected.session?.ownedByCurrentAccount
+      && (this.snapshot.session?.ownedByCurrentAccount || this.snapshot.session?.participants.some(participant => participant.identifier === expected.accountIdentifier));
     const operation = JSON.stringify([CommandPolicy.playbackOperation, expected.session?.identifier, expected.session?.hostDeviceIdentifier, command]);
     return this.submit(requestIdentifier, operation, async ownership => {
       if (!ownership.playback) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
@@ -179,18 +203,25 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       if (!currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
       const session = this.snapshot.session;
       if (!session) throw new IntegrationFailure(IntegrationFailureCode.NotFound);
-      if (!session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+      if (!session.ownedByCurrentAccount && !ownership.guestCommandVerifier) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
       if (!session.active || !session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
       const membership = new AbortController();
       const scope = combineCancellation(ownership.cancellation.signal, membership.signal);
       const stop = this.subscribe(() => { if (!currentTarget()) membership.abort(); });
+      let commandSubmitted = false;
       try {
+        if (!session.ownedByCurrentAccount) {
+          await withCancellation(ownership.guestCommandVerifier!.verify({ accountIdentifier: ownership.accountIdentifier,
+            sessionIdentifier: session.identifier, hostDeviceIdentifier: session.hostDeviceIdentifier }, scope.signal), scope.signal);
+          if (ownership !== this.ownership || !currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+        }
+        commandSubmitted = true;
         await withCancellation(ownership.playback.execute(command, session.hostDeviceIdentifier, scope.signal), scope.signal);
         if (ownership !== this.ownership || !currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
         this.publish({ ...this.snapshot, status: JamConnectionStatus.Ready, failure: null });
       } catch (failure) {
+        if (failureCode(failure) === IntegrationFailureCode.UnknownOutcome || commandSubmitted && scope.signal.aborted) ownership.playbackOutcomeUnknown = true;
         if (ownership !== this.ownership || !currentTarget()) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
-        if (failureCode(failure) === IntegrationFailureCode.UnknownOutcome) ownership.playbackOutcomeUnknown = true;
         throw failure;
       } finally { stop(); scope.dispose(); }
     });
@@ -240,7 +271,8 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
         const session = response?.session;
         if (!session || !expected.session || session.identifier !== expected.session.identifier
           || session.hostDeviceIdentifier !== expected.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
-        if (!session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+        if (!session.ownedByCurrentAccount && (!ownership.guestCommandVerifier
+          || !session.participants.some(participant => participant.identifier === ownership.accountIdentifier))) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
         if (!session.active || !session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
         return Object.freeze({ accountIdentifier: ownership.accountIdentifier, sessionIdentifier: session.identifier,
           authorityIdentifier: session.hostDeviceIdentifier });
@@ -248,13 +280,20 @@ export class JamSessionClient implements ExternalStore<JamSnapshot> {
       try {
         checkCancellation(scope.signal);
         if (!expected.session) throw new IntegrationFailure(IntegrationFailureCode.NotFound);
-        if (!expected.session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+        if (!expected.session.ownedByCurrentAccount && !ownership.guestCommandVerifier) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
         if (!expected.session.active || !expected.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
         const before = await withCancellation(ownership.protocol.readCurrentAccount(scope.signal), scope.signal);
         const identity = requireIdentity(before);
+        if (!expected.session.ownedByCurrentAccount) await withCancellation(ownership.guestCommandVerifier!.verify({
+          accountIdentifier: identity.accountIdentifier, sessionIdentifier: identity.sessionIdentifier,
+          hostDeviceIdentifier: identity.authorityIdentifier }, scope.signal), scope.signal);
         await withCancellation(ownership.sharedStateVerifier.verify(identity, scope.signal), scope.signal);
         requireIdentity(before);
         const after = await withCancellation(ownership.protocol.readCurrentAccount(scope.signal), scope.signal);
+        requireIdentity(after);
+        if (!expected.session.ownedByCurrentAccount) await withCancellation(ownership.guestCommandVerifier!.verify({
+          accountIdentifier: identity.accountIdentifier, sessionIdentifier: identity.sessionIdentifier,
+          hostDeviceIdentifier: identity.authorityIdentifier }, scope.signal), scope.signal);
         requireIdentity(after);
         if (!after) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
         const invitation = after.invitation ? Object.freeze({ ...after.invitation }) : null;
