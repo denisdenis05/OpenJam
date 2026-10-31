@@ -3,6 +3,7 @@
 | Functionality | Dedicated tests |
 | --- | --- |
 | Retained host runtime, failed cleanup replacement barriers, native retirement release, snapshot privacy and decision ordering | Mobile `SpotifyHostRuntimeTest`, `SpotifyHostNativeSessionTest`, `SpotifyHostSnapshotProtocolTest`, `SpotifyDecisionExecutorTest`, `SpotifyConnectRuntimeTest` |
+| Safe native hosting rejection/snapshot categories, cleanup/catalog and stop errors, unknown/throwing-property privacy | Mobile `tools/spotify-hosting.test.cjs` (44 total hosting cases) |
 | Explicit app hosting, actual queue capture, matching/epoch fences, exclusive following cleanup and app controls | Mobile `tools/spotify-hosting.test.cjs`, `tools/spotify-hosting-queue.test.cjs`, `tools/spotify-hosting-screen.test.tsx`, `tools/spotify-playback-controller.test.cjs` |
 | Background reverse matching, one-use native claims, scoped search, task expiry, account replacement and paused fresh publication | Mobile `SpotifyHostRecordingBrokerTest`, `SpotifyHostCoordinatorTest`, `tools/spotify-background-hosting.test.cjs`, `tools/spotify-background-hosting-headless.test.ts` |
 | Bounded native HTTP waiting with actual generation/authority revalidation, responsive Dealer replies and no HTTP request replay | Mobile native `connect_actor` suite |

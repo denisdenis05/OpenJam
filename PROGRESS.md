@@ -1,3 +1,27 @@
+# Mobile failure reporting and physical startup checkpoint — 2026-10-31
+
+Mobile source `9cef510` preserves known hosting failure categories from React
+Native Promise rejections and scoped snapshots, instead of collapsing them to
+Network. Dedicated hosting tests passed 44 cases; the full Spotify run passed
+487 Node and 105 Jest cases, plus full mobile TypeScript. Mobile `bff66d5` records
+the updated, verified release APK. This library's source is unchanged.
+
+Earlier physical checks on mobile e82ea20 passed installation, startup, rendered
+Spotify Jam, restored native-connection status and creation of an owned Jam.
+App-led hosting did not pass: an initial attempt displayed Unsupported, and
+another after the user selected library audio displayed Network. Neither message
+establishes a root cause. The newer error-reporting APK has not been installed.
+The user now requests continuation without device access; do not treat earlier
+source tests or registration as guest/audio/background acceptance.
+
+Fresh approved host probe 52503 reached registration and passed native state and
+metadata reads. Catalog search still returned Backpressure; HTTP status/cause are
+unproven. Check actual owner liveness before reusing the socket or requesting
+another pairing. No second Spotify account is available. Live catalog success,
+guest permissions/shared playback, audible timing and Android background/reconnect/
+renewal checks remain open. Current artifact details and resumption instructions
+are in the mobile SPOTIFY_JAM_APK.md and SPOTIFY_NATIVE_FOLLOWER_HANDOFF.md.
+
 # Integrated mobile hosting and packaged APK — 2026-10-31
 
 Mobile source `e82ea20` now composes the retained host owner, real player and

@@ -15,6 +15,18 @@ player and owned-host control guards are preserved.
 | 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | In progress: application-owned connection, native follower, headless resolver, app controls and verified player-epoch ownership receipt integrated; background continuation requires acknowledged native ownership | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
 | 6 | iOS native Librespot login/integration | Deferred by user | Outside current objective |
 
+## Current acceptance and device-free source continuation — 2026-10-31
+
+Mobile `9cef510` fixes safe native hosting failure propagation; `bff66d5` records
+the updated APK, which has not been installed. Physical e82ea20 installation,
+React UI, restored Spotify connection and owned-Jam creation passed. App-led
+hosting failed with Unsupported before selecting library audio and a generic
+Network afterward; the exact cause remains unknown. Fresh approved probe state/
+metadata reads passed, but search returned Backpressure. The user now requests
+continuation without the device; no second account is available. Preserve live
+sessions and keep guest/audio/background acceptance open. See mobile progress
+notes for source test results and the artifact checksum.
+
 ## Integrated source and APK checkpoint — 2026-10-31
 
 Mobile source `e82ea20` integrates the app hosting action, retained runtime, native
