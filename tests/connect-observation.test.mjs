@@ -66,9 +66,10 @@ test(Fixture.names.unavailable, () => {
   assert.throws(() => decode(speed), failure(library.IntegrationFailureCode.Unsupported));
 });
 test(Fixture.names.reader, async () => {
-  const calls = []; const sample = decode(); const abort = cancellation();
+  const calls = []; const sample = { ...decode(), nextTracks: [track(Fixture.otherOccurrence)] }; const abort = cancellation();
   const reader = new library.SpotifyConnectPlaybackReader({ read: async (...parameters) => { calls.push(parameters); return sample; } }, Values.accountIdentifier);
-  assert.equal(await reader.read(Fixture.host, abort.signal), sample.playback);
+  assert.deepEqual(await reader.read(Fixture.host, abort.signal), { ...sample.playback, queue: { revision: Fixture.revision,
+    upcomingOccurrences: [{ occurrenceIdentifier: Fixture.otherOccurrence, spotifyTrackIdentifier: Values.spotifyIdentifier }] } });
   assert.deepEqual(calls, [[Values.accountIdentifier, Fixture.host, abort.signal]]);
 });
 

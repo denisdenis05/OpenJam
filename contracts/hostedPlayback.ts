@@ -1,7 +1,8 @@
-import type { SharedPlaybackIdentity } from './sharedPlayback';
+import type { SharedPlaybackIdentity, SharedPlaybackQueue } from './sharedPlayback';
 
 export interface HostedPlaybackSample extends SharedPlaybackIdentity {
   readonly spotifyTrackIdentifier: string;
+  readonly queue?: SharedPlaybackQueue;
   readonly occurrenceIdentifier?: string;
   readonly buffering?: boolean;
   readonly positionMilliseconds: number;

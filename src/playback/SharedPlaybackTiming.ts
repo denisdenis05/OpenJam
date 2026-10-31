@@ -1,8 +1,9 @@
-import type { SharedPlaybackIdentity, SharedPlaybackLocalSample, SharedPlaybackTarget } from '../../contracts/sharedPlayback';
+import type { SharedPlaybackIdentity, SharedPlaybackLocalSample, SharedPlaybackQueue, SharedPlaybackTarget } from '../../contracts/sharedPlayback';
 import { IntegrationFailureCode } from '../../contracts/network';
 import { IntegrationFailure } from '../network/IntegrationFailure';
 
 export const SharedPlaybackPolicy = Object.freeze({
+  maximumUpcomingOccurrences: 2000, emptyCount: 0, currentOccurrenceCount: 1,
   minimumMilliseconds: 0, minimumSequence: 0, maximumIdentifierCharacters: 512,
   maximumMilliseconds: Number.MAX_SAFE_INTEGER,
   maximumObservationAgeMilliseconds: 5000, maximumUncertaintyMilliseconds: 750,
@@ -41,7 +42,29 @@ export function capturePlaybackTarget(target: SharedPlaybackTarget, now: number)
     spotifyTrackIdentifier: target.spotifyTrackIdentifier, positionMilliseconds: target.positionMilliseconds,
     durationMilliseconds: target.durationMilliseconds, anchorMonotonicMilliseconds: target.anchorMonotonicMilliseconds,
     observedMonotonicMilliseconds: target.observedMonotonicMilliseconds, uncertaintyMilliseconds: target.uncertaintyMilliseconds,
-    playing: target.playing, buffering: target.buffering });
+    playing: target.playing, buffering: target.buffering,
+    ...(target.queue === undefined ? {} : { queue: capturePlaybackQueue(target.queue, target.occurrenceIdentifier) }) });
+}
+
+function capturePlaybackQueue(queue: SharedPlaybackQueue, currentOccurrence: string): SharedPlaybackQueue {
+  if (typeof queue.revision !== SharedPlaybackPolicy.stringType || !queue.revision.trim()
+    || queue.revision.length > SharedPlaybackPolicy.maximumIdentifierCharacters || !Array.isArray(queue.upcomingOccurrences)
+    || queue.upcomingOccurrences.length > SharedPlaybackPolicy.maximumUpcomingOccurrences) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+  const identifiers = new Set([currentOccurrence]);
+  const upcomingOccurrences = queue.upcomingOccurrences.map(occurrence => {
+    if (typeof occurrence.occurrenceIdentifier !== SharedPlaybackPolicy.stringType || !occurrence.occurrenceIdentifier.trim()
+      || occurrence.occurrenceIdentifier.length > SharedPlaybackPolicy.maximumIdentifierCharacters
+      || !SharedPlaybackPolicy.trackIdentifierPattern.test(occurrence.spotifyTrackIdentifier)
+      || identifiers.has(occurrence.occurrenceIdentifier)) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+    identifiers.add(occurrence.occurrenceIdentifier);
+    return Object.freeze({ occurrenceIdentifier: occurrence.occurrenceIdentifier, spotifyTrackIdentifier: occurrence.spotifyTrackIdentifier });
+  });
+  return Object.freeze({ revision: queue.revision, upcomingOccurrences: Object.freeze(upcomingOccurrences) });
+}
+
+export function samePlaybackQueue(left: SharedPlaybackTarget, right: SharedPlaybackTarget): boolean {
+  return left.occurrenceIdentifier === right.occurrenceIdentifier && left.spotifyTrackIdentifier === right.spotifyTrackIdentifier
+    && left.queue?.revision === right.queue?.revision && JSON.stringify(left.queue?.upcomingOccurrences) === JSON.stringify(right.queue?.upcomingOccurrences);
 }
 
 export function playbackTargetFresh(target: SharedPlaybackTarget, now: number): boolean {

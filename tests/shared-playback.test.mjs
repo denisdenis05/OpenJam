@@ -200,3 +200,145 @@ test(Fixture.names.reentrantAttachment, async () => { const current = fixture();
   } });
   await current.follower.attach(identity); await replacement; assert.equal(current.follower.getSnapshot().identity.authorityIdentifier, Fixture.otherAuthority);
   assert.equal(current.state.acquired.length, Fixture.doubleCount); await current.follower.detach(); });
+
+const QueueFixture = Object.freeze({ revision: 'first-remote-queue', replacementRevision: 'replacement-remote-queue',
+  thirdOccurrence: 'third-remote-occurrence',
+  preserveName: 'Authoritative queue preparation preserves repeated tracks and actual occurrence order',
+  replaceName: 'A changed remote queue replaces upcoming entries while retaining the current occurrence',
+  missingName: 'An unmatched upcoming recording is omitted without advancing the current occurrence',
+  staleName: 'A superseded upcoming resolution cannot publish its retired queue',
+  duplicateName: 'Duplicate authoritative occurrence identifiers fail before preparing output',
+  unsupportedName: 'An output without queue projection support rejects authoritative queue targets' });
+function queuedTarget(overrides = {}) {
+  return target({ queue: { revision: QueueFixture.revision, upcomingOccurrences: [
+    { occurrenceIdentifier: Fixture.secondOccurrence, spotifyTrackIdentifier: Fixture.spotifyTrackIdentifier },
+  ] }, ...overrides });
+}
+function queueFixture() {
+  const current = fixture(); current.state.queues = [];
+  current.lease.prepareQueue = async (recordings, occurrence) => {
+    current.state.queues.push({ recordings, occurrence });
+    if (current.state.occurrence !== occurrence) current.state.playing = false;
+    current.state.occurrence = occurrence;
+  };
+  return current;
+}
+test(QueueFixture.preserveName, async () => {
+  const current = queueFixture(); await current.follower.attach(identity); await current.follower.accept(queuedTarget());
+  assert.deepEqual(current.state.queues[Fixture.firstPosition], { occurrence: Fixture.occurrenceIdentifier, recordings: [
+    { occurrenceIdentifier: Fixture.occurrenceIdentifier, recordingIdentifier: Fixture.recordingIdentifier },
+    { occurrenceIdentifier: Fixture.secondOccurrence, recordingIdentifier: Fixture.recordingIdentifier },
+  ] });
+  assert.equal(current.state.resolutions.length, Fixture.singleCount); await current.follower.detach();
+});
+test(QueueFixture.replaceName, async () => {
+  const current = queueFixture(); await current.follower.attach(identity); await current.follower.accept(queuedTarget());
+  await current.follower.accept(queuedTarget({ sequence: Fixture.nextSequence,
+    queue: { revision: QueueFixture.replacementRevision, upcomingOccurrences: [] } }));
+  assert.equal(current.state.queues.length, Fixture.doubleCount);
+  assert.equal(current.state.queues[Fixture.secondPosition].recordings.length, Fixture.singleCount); await current.follower.detach();
+});
+test(QueueFixture.missingName, async () => {
+  const current = queueFixture(); const resolve = current.resolver.resolve;
+  current.resolver.resolve = async (identifier, cancellation) => identifier === Fixture.secondTrackIdentifier
+    ? { ...current.state.match, status: library.MatchStatus.NotFound, selected: null } : resolve(identifier, cancellation);
+  await current.follower.attach(identity); await current.follower.accept(queuedTarget({ queue: { revision: QueueFixture.revision,
+    upcomingOccurrences: [{ occurrenceIdentifier: Fixture.secondOccurrence, spotifyTrackIdentifier: Fixture.secondTrackIdentifier }] } }));
+  assert.equal(current.state.queues[Fixture.firstPosition].recordings.length, Fixture.singleCount);
+  assert.equal(current.follower.getSnapshot().status, library.SharedPlaybackStatus.Following); await current.follower.detach();
+});
+test(QueueFixture.staleName, async () => {
+  const current = queueFixture(); const pending = deferred(); const resolve = current.resolver.resolve;
+  current.resolver.resolve = (identifier, cancellation) => identifier === Fixture.secondTrackIdentifier ? pending.promise : resolve(identifier, cancellation);
+  await current.follower.attach(identity);
+  const first = current.follower.accept(queuedTarget({ queue: { revision: QueueFixture.revision,
+    upcomingOccurrences: [{ occurrenceIdentifier: Fixture.secondOccurrence, spotifyTrackIdentifier: Fixture.secondTrackIdentifier }] } }));
+  await flush();
+  const replacement = current.follower.accept(queuedTarget({ sequence: Fixture.nextSequence,
+    queue: { revision: QueueFixture.replacementRevision, upcomingOccurrences: [] } }));
+  await replacement;
+  assert.equal(current.state.queues.length, Fixture.doubleCount);
+  pending.resolve(current.state.match); await first;
+  assert.equal(current.state.queues.length, Fixture.doubleCount);
+  assert.equal(current.state.queues.at(-Fixture.singleCount).recordings.length, Fixture.singleCount); await current.follower.detach();
+});
+test(QueueFixture.duplicateName, async () => {
+  const current = queueFixture(); await current.follower.attach(identity);
+  await current.follower.accept(queuedTarget({ queue: { revision: QueueFixture.revision,
+    upcomingOccurrences: [{ occurrenceIdentifier: Fixture.occurrenceIdentifier, spotifyTrackIdentifier: Fixture.spotifyTrackIdentifier }] } }));
+  assert.equal(current.follower.getSnapshot().failure, library.IntegrationFailureCode.InvalidResponse);
+  assert.equal(current.state.queues.length, Fixture.zero); await current.follower.detach();
+});
+test(QueueFixture.unsupportedName, async () => {
+  const current = fixture(); await current.follower.attach(identity); await current.follower.accept(queuedTarget());
+  assert.equal(current.follower.getSnapshot().failure, library.IntegrationFailureCode.Unsupported);
+  assert.equal(current.state.prepared.length, Fixture.zero); await current.follower.detach();
+});
+
+const QueueBoundsFixture = Object.freeze({ name: 'Authoritative queue capture accepts its exact bound and rejects an overflow without mutating captured entries' });
+test(QueueBoundsFixture.name, () => {
+  const upcomingOccurrences = Array.from({ length: library.SharedPlaybackPolicy.maximumUpcomingOccurrences }, (unusedOccurrence, position) => ({
+    occurrenceIdentifier: QueueFixture.thirdOccurrence + position, spotifyTrackIdentifier: Fixture.spotifyTrackIdentifier,
+  }));
+  const value = queuedTarget({ queue: { revision: QueueFixture.revision, upcomingOccurrences } });
+  const captured = library.capturePlaybackTarget(value, Fixture.nowMilliseconds);
+  assert.equal(captured.queue.upcomingOccurrences.length, library.SharedPlaybackPolicy.maximumUpcomingOccurrences);
+  assert.ok(Object.isFrozen(captured.queue.upcomingOccurrences));
+  upcomingOccurrences.push({ occurrenceIdentifier: Fixture.secondOccurrence, spotifyTrackIdentifier: Fixture.spotifyTrackIdentifier });
+  assert.throws(() => library.capturePlaybackTarget(value, Fixture.nowMilliseconds),
+    failure => failure instanceof library.IntegrationFailure && failure.code === library.IntegrationFailureCode.InvalidResponse);
+});
+
+
+const PriorityQueueFixture = Object.freeze({ name: 'Current playback starts before a blocked future match and a queue refresh preserves its intent' });
+test(PriorityQueueFixture.name, async () => {
+  const current = queueFixture(); const pending = deferred(); const resolve = current.resolver.resolve;
+  let upcomingCancellation = null;
+  current.resolver.resolve = (identifier, cancellation) => {
+    if (identifier !== Fixture.secondTrackIdentifier) return resolve(identifier, cancellation);
+    upcomingCancellation = cancellation; return pending.promise;
+  };
+  await current.follower.attach(identity);
+  await current.follower.accept(queuedTarget({ queue: { revision: QueueFixture.revision,
+    upcomingOccurrences: [{ occurrenceIdentifier: Fixture.secondOccurrence, spotifyTrackIdentifier: Fixture.secondTrackIdentifier }] } }));
+  assert.equal(current.state.playing, true);
+  assert.equal(current.follower.getSnapshot().status, library.SharedPlaybackStatus.Following);
+  assert.equal(current.state.queues.length, Fixture.singleCount);
+  await current.follower.accept(queuedTarget({ sequence: Fixture.nextSequence,
+    queue: { revision: QueueFixture.replacementRevision, upcomingOccurrences: [] } }));
+  assert.equal(upcomingCancellation.aborted, true);
+  assert.equal(current.state.playing, true);
+  assert.equal(current.state.applied.some(execution => !execution.playing), false);
+  pending.resolve(current.state.match); await flush();
+  assert.equal(current.state.queues.at(-Fixture.singleCount).recordings.length, Fixture.singleCount);
+  await current.follower.detach();
+});
+
+
+const FutureFailureFixture = Object.freeze({ name: 'A rejected or failed future lookup preserves current playback and reports a partial queue without retry',
+  rejectionMode: 'rejection', failedResultMode: 'failed-result' });
+test(FutureFailureFixture.name, async () => {
+  for (const mode of [FutureFailureFixture.rejectionMode, FutureFailureFixture.failedResultMode]) {
+    const current = queueFixture(); const resolve = current.resolver.resolve;
+    let futureRequests = Fixture.zero;
+    current.resolver.resolve = async (identifier, cancellation) => {
+      if (identifier !== Fixture.secondTrackIdentifier) return resolve(identifier, cancellation);
+      futureRequests += Fixture.singleCount;
+      if (mode === FutureFailureFixture.rejectionMode) throw new library.IntegrationFailure(library.IntegrationFailureCode.Network);
+      return { ...current.state.match, status: library.MatchStatus.Failed, selected: null, failure: library.IntegrationFailureCode.Network };
+    };
+    await current.follower.attach(identity);
+    await current.follower.accept(queuedTarget({ queue: { revision: QueueFixture.revision,
+      upcomingOccurrences: [{ occurrenceIdentifier: Fixture.secondOccurrence, spotifyTrackIdentifier: Fixture.secondTrackIdentifier }] } }));
+    await flush();
+    assert.equal(current.state.playing, true);
+    assert.equal(current.follower.getSnapshot().status, library.SharedPlaybackStatus.Following);
+    assert.equal(current.follower.getSnapshot().upcomingQueueFailure, library.IntegrationFailureCode.Network);
+    assert.equal(current.follower.getSnapshot().unavailableUpcomingCount, Fixture.singleCount);
+    assert.equal(current.follower.getSnapshot().upcomingQueuePending, false);
+    await current.tick();
+    assert.equal(futureRequests, Fixture.singleCount);
+    assert.equal(current.state.playing, true);
+    await current.follower.detach();
+  }
+});

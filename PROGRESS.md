@@ -1,3 +1,24 @@
+# Authoritative follower queue projection — 2026-10-31
+
+Connect playback samples now carry the actual bounded upcoming occurrence queue.
+Shared playback starts the matched current recording immediately, resolves future
+recordings in the background and publishes supported matches in remote order.
+Repeated tracks retain distinct real occurrences. Missing future recordings are
+omitted; missing current recordings hold playback. Superseded matching is canceled
+promptly even when a resolver ignores cancellation. Queue projection remains an
+optional output capability; unsupported outputs fail explicitly for queue targets.
+Future lookup errors retain current audio and expose pending state, unavailable
+count and a sanitized queue failure; that projection performs no repeated future
+lookup. Legacy playback readers provide current-only targets without fabricated
+future identities. Mobile owns native background execution and player queue replacement;
+its FOLLOWER_QUEUE_PROGRESS.md maps the source checks and device limitations.
+
+Library `npm test` passed architecture checks, TypeScript and all 652 cases.
+Dedicated shared-playback and observation suites passed 58 cases after
+current-priority refinement. Mobile adapter/store checks passed 41 cases; the
+owning session reported all app and Player JVM checks passing after preservation
+changes. No live Spotify or device result is claimed by this implementation agent.
+
 # Native guest commands, player integration and QR — 2026-10-31
 
 Implemented an explicitly composed guestCommandVerifier path for queue append,

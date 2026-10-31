@@ -8,8 +8,24 @@ export interface SharedPlaybackIdentity {
   readonly authorityIdentifier: string;
 }
 
+export interface SharedPlaybackQueueOccurrence {
+  readonly occurrenceIdentifier: string;
+  readonly spotifyTrackIdentifier: string;
+}
+
+export interface SharedPlaybackQueue {
+  readonly revision: string;
+  readonly upcomingOccurrences: readonly SharedPlaybackQueueOccurrence[];
+}
+
+export interface SharedPlaybackRecordingOccurrence {
+  readonly occurrenceIdentifier: string;
+  readonly recordingIdentifier: string;
+}
+
 export interface SharedPlaybackTarget extends SharedPlaybackIdentity {
   readonly sequence: number;
+  readonly queue?: SharedPlaybackQueue;
   readonly occurrenceIdentifier: string;
   readonly spotifyTrackIdentifier: string;
   readonly positionMilliseconds: number;
@@ -49,6 +65,7 @@ export interface SharedPlaybackExecution {
 }
 
 export interface SharedPlaybackLease {
+  prepareQueue?(recordings: readonly SharedPlaybackRecordingOccurrence[], occurrenceIdentifier: string, cancellation: AbortSignal): Promise<void>;
   prepare(recordingIdentifier: string, occurrenceIdentifier: string, cancellation: AbortSignal): Promise<void>;
   sample(cancellation: AbortSignal): Promise<SharedPlaybackLocalSample>;
   apply(execution: SharedPlaybackExecution, cancellation: AbortSignal): Promise<void>;
@@ -73,6 +90,9 @@ export enum SharedPlaybackStatus {
 }
 
 export interface SharedPlaybackSnapshot {
+  readonly upcomingQueuePending?: boolean;
+  readonly unavailableUpcomingCount?: number;
+  readonly upcomingQueueFailure?: IntegrationFailureCode | null;
   readonly status: SharedPlaybackStatus;
   readonly identity: SharedPlaybackIdentity | null;
   readonly occurrenceIdentifier: string | null;
