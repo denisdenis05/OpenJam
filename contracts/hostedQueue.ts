@@ -50,3 +50,13 @@ export interface HostedQueueObservation extends ExternalStore<HostedQueueSnapsho
   setActive(active: boolean): void;
   dispose(): void;
 }
+
+export interface JamGuestObservationIdentity {
+  readonly accountIdentifier: string;
+  readonly sessionIdentifier: string;
+  readonly hostDeviceIdentifier: string;
+}
+
+export interface JamGuestObservationVerifier {
+  verify(identity: JamGuestObservationIdentity, cancellation: AbortSignal): Promise<void>;
+}

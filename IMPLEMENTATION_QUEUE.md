@@ -15,6 +15,17 @@ player and owned-host control guards are preserved.
 | 5 | Native Android foreground transport, playback coordination, renewal and lifecycle recovery | In progress: application-owned connection, native follower, headless resolver, app controls and verified player-epoch ownership receipt integrated; background continuation requires acknowledged native ownership | Screen lock/background/network interruption/renewal tested without JavaScript screen polling or stale-account playback |
 | 6 | iOS native Librespot login/integration | Deferred by user | Outside current objective |
 
+## Verified guest reads and in-app settings — 2026-10-31
+
+Native-only guest queue/playback reads now require fresh membership verification
+before and after the read and actual projected admission. Explicit guest native
+following is integrated with the same verified source. Guest writes remain
+permission-gated. Mobile also integrates the approved Profile/Settings hierarchy
+and further host cleanup, queue capture and startup acknowledgement fixes.
+Library source tests pass 626 cases. Actual guest admission/control permissions,
+catalog backpressure, audible alignment and background device acceptance remain
+unverified; mobile verification is postponed, not treated as passed.
+
 ## Current acceptance and device-free source continuation — 2026-10-31
 
 Mobile `9cef510` fixes safe native hosting failure propagation; `bff66d5` records

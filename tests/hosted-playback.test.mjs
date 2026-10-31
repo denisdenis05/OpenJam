@@ -109,3 +109,35 @@ test(NativeReaderFixture.name, async () => {
   assert.equal(calls.length, Fixture.one); assert.equal(calls[Fixture.zero].hostDeviceIdentifier, Fixture.host);
   assert.equal(current.state.requests.length, Fixture.zero); current.runtime.dispose();
 });
+const GuestPlaybackFixture = Object.freeze({ accepted: 'Admitted guest native playback verifies membership before and after its source read',
+  denied: 'Guest playback cannot publish after final native membership verification fails' });
+for (const [name, denyFinal] of [[GuestPlaybackFixture.accepted, false], [GuestPlaybackFixture.denied, true]]) {
+  test(name, async () => {
+    let verifications = Fixture.zero;
+    const current = runtimeFixture({ guestObservationVerifier: { verify: async () => {
+      verifications += Fixture.one;
+      if (denyFinal && verifications > Fixture.one) throw new library.IntegrationFailure(library.IntegrationFailureCode.Forbidden);
+    } }, playbackReader: { read: async () => ({ spotifyTrackIdentifier: Fixture.track, positionMilliseconds: Fixture.position,
+      durationMilliseconds: Fixture.duration, playing: false, anchorMonotonicMilliseconds: Fixture.midpoint,
+      observedMonotonicMilliseconds: Fixture.returned, uncertaintyMilliseconds: Fixture.uncertainty, stateChangedAtUnixMilliseconds: Fixture.oldChange }) } });
+    current.runtime.sessions.attachAccount(Values.accountIdentifier, { createOrActivate: async () => ({ session: {
+      identifier: Values.sessionIdentifier, ownedByCurrentAccount: false, active: true,
+      participants: [{ identifier: Values.accountIdentifier, displayName: Values.accountIdentifier }], hostDeviceIdentifier: Fixture.host }, invitation: null }), end: async () => undefined });
+    await current.runtime.sessions.createOrActivateSession(Values.createRequestIdentifier);
+    if (denyFinal) await assert.rejects(current.runtime.readHostedPlayback(cancellation().signal), failure(library.IntegrationFailureCode.Forbidden));
+    else assert.equal((await current.runtime.readHostedPlayback(cancellation().signal)).authorityIdentifier, Fixture.host);
+    assert.equal(verifications, Fixture.one + Fixture.one); assert.equal(current.state.requests.length, Fixture.zero); current.runtime.dispose();
+  });
+}
+const GuestCancellationFixture = Object.freeze({ name: 'Canceled guest verification cannot wait for an uncooperative native membership response' });
+test(GuestCancellationFixture.name, async () => {
+  const pending = deferred(); const signal = cancellation();
+  const current = runtimeFixture({ guestObservationVerifier: { verify: () => pending.promise } });
+  current.runtime.sessions.attachAccount(Values.accountIdentifier, { createOrActivate: async () => ({ session: {
+    identifier: Values.sessionIdentifier, ownedByCurrentAccount: false, active: true,
+    participants: [{ identifier: Values.accountIdentifier, displayName: Values.accountIdentifier }], hostDeviceIdentifier: Fixture.host }, invitation: null }), end: async () => undefined });
+  await current.runtime.sessions.createOrActivateSession(Values.createRequestIdentifier);
+  const reading = current.runtime.readHostedPlayback(signal.signal); await flushMicrotasks(); signal.abort();
+  await assert.rejects(reading, failure(library.IntegrationFailureCode.Canceled));
+  assert.equal(current.state.requests.length, Fixture.zero); pending.resolve(); current.runtime.dispose();
+});

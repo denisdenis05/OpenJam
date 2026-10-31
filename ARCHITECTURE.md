@@ -20,6 +20,16 @@ artist fallback. It does not load covers, mutate tracked entities, queue
 downloads, or store Spotify tokens. Query result limits do not establish bounded
 database scan cost; no query performance claim has been measured.
 
+## Verified guest observations
+
+An optional JamGuestObservationVerifier admits guest playback and shared-queue
+reads. The session projection must include the bound guest, and a fresh verifier
+must confirm the same account, Jam and host before and after the source read.
+Cancellation, participant removal and account/host replacement discard results.
+Default construction remains owner-only. The mobile native composition supplies
+actual Connect membership reads fenced by registration handle/generation. This
+read capability grants no guest queue mutation or playback-command authority.
+
 ## Session commands
 
 `JamSessionClient` serializes mutations, retaining up to 16 pending commands and

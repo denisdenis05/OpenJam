@@ -1,3 +1,18 @@
+# Verified guest source integration — 2026-10-31
+
+Implemented optional, fail-closed guest observation in the runtime and queue
+observer. Native membership is verified before and after reads; projected guest
+admission, account/Jam/host scope and cancellation remain required. Mobile binds
+the actual Android membership bridge and supports explicit admitted-guest native
+following. Guest writes remain denied because admission alone is not control
+permission. Browser construction retains its previous owner-only behavior.
+
+`npm test` passed 626 library cases, including dedicated before/after denial,
+retirement and cancellation tests. GUEST_IMPLEMENTATION_PROGRESS.md and FEATURES.md
+map the changes. Mobile checks and the new Profile/Settings build are recorded in
+its progress files. Physical-device and cross-account verification are postponed
+by the user; no new live Spotify request is evidence for this chapter.
+
 # Mobile failure reporting and physical startup checkpoint — 2026-10-31
 
 Mobile source `9cef510` preserves known hosting failure categories from React

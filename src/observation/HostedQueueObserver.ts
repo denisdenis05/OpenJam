@@ -1,5 +1,5 @@
 import { HostedQueueStatus } from '../../contracts/hostedQueue';
-import type { HostedQueueObservation, HostedQueueReader, HostedQueueSnapshot } from '../../contracts/hostedQueue';
+import type { HostedQueueObservation, HostedQueueReader, HostedQueueSnapshot, JamGuestObservationVerifier } from '../../contracts/hostedQueue';
 import { IntegrationFailureCode } from '../../contracts/network';
 import type { Clock, Scheduler } from '../../contracts/network';
 import { JamConnectionStatus } from '../../contracts/session';
@@ -36,7 +36,7 @@ export class HostedQueueObserver implements HostedQueueObservation {
   private readonly stopSessionObservation: () => void;
 
   constructor(private readonly sessions: ExternalStore<JamSnapshot>, private readonly reader: HostedQueueReader,
-    private readonly clock: Clock, private readonly enabled = false, private readonly scheduler?: Scheduler) {
+    private readonly clock: Clock, private readonly enabled = false, private readonly scheduler?: Scheduler, private readonly guestVerifier?: JamGuestObservationVerifier) {
     this.snapshot = Object.freeze({ ...EmptyResponse, enabled,
       status: enabled ? HostedQueueStatus.Idle : HostedQueueStatus.Detached,
       sessionIdentifier: null, hostDeviceIdentifier: null, failure: null });
@@ -110,9 +110,11 @@ export class HostedQueueObserver implements HostedQueueObservation {
     if (!this.isCurrent(operation)) return;
     if (!this.matchesCurrentIdentity(operation.identity)) { this.sessionChanged(); return; }
     try {
+      await this.verifyGuest(operation);
       const response = await withCancellation(this.reader.read(operation.identity.hostDeviceIdentifier, operation.cancellation.signal), operation.cancellation.signal);
       if (!this.isCurrent(operation)) return;
       if (!this.matchesCurrentIdentity(operation.identity)) { this.sessionChanged(); return; }
+      await this.verifyGuest(operation);
       const copied = copyHostedQueueResponse(response);
       if (!this.isCurrent(operation) || !this.matchesCurrentIdentity(operation.identity)) return;
       this.retryAtMilliseconds = null;
@@ -125,13 +127,21 @@ export class HostedQueueObserver implements HostedQueueObservation {
     const current = this.sessions.getSnapshot();
     if (!current.accountIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
     if (!current.session) throw new IntegrationFailure(IntegrationFailureCode.NotFound);
-    if (!current.session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+    if (!current.session.ownedByCurrentAccount && (!this.guestVerifier || !current.session.participants.some(participant => participant.identifier === current.accountIdentifier))) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
     if (!current.session.active || !current.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
     if (current.status !== JamConnectionStatus.Ready && current.status !== JamConnectionStatus.Operating) {
       throw new IntegrationFailure(current.failure ?? IntegrationFailureCode.UnknownOutcome);
     }
     return Object.freeze({ accountIdentifier: current.accountIdentifier, sessionIdentifier: current.session.identifier,
       hostDeviceIdentifier: current.session.hostDeviceIdentifier });
+  }
+
+  private async verifyGuest(operation: PendingObservation): Promise<void> {
+    if (!this.matchesCurrentIdentity(operation.identity)) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+    if (this.sessions.getSnapshot().session?.ownedByCurrentAccount) return;
+    if (!this.guestVerifier) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+    await withCancellation(this.guestVerifier.verify(operation.identity, operation.cancellation.signal), operation.cancellation.signal);
+    if (!this.isCurrent(operation) || !this.matchesCurrentIdentity(operation.identity)) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
   }
 
   private matchesCurrentIdentity(expected: ObservationIdentity): boolean {
@@ -148,7 +158,7 @@ export class HostedQueueObserver implements HostedQueueObservation {
     const identity = this.pending?.identity;
     if (identity && this.matchesCurrentIdentity(identity)) return;
     if (!identity && this.snapshotIdentity?.accountIdentifier === current.accountIdentifier
-      && current.accountIdentifier && current.session?.ownedByCurrentAccount && current.session.active
+      && current.accountIdentifier && current.session && this.matchesCurrentIdentity(this.snapshotIdentity) && current.session.active
       && current.session.identifier === this.snapshot.sessionIdentifier && current.session.hostDeviceIdentifier === this.snapshot.hostDeviceIdentifier
       && (current.status === JamConnectionStatus.Ready || current.status === JamConnectionStatus.Operating)) return;
     this.invalidate();
@@ -191,7 +201,7 @@ export class HostedQueueObserver implements HostedQueueObservation {
     const changedContext = this.snapshotIdentity !== null && (current.accountIdentifier !== this.snapshotIdentity.accountIdentifier
       || current.session?.identifier !== this.snapshotIdentity.sessionIdentifier
       || current.session?.hostDeviceIdentifier !== this.snapshotIdentity.hostDeviceIdentifier
-      || !current.session.ownedByCurrentAccount || !current.session.active);
+      || !this.matchesCurrentIdentity(this.snapshotIdentity) || !current.session.active);
     if (changedContext) this.snapshotIdentity = null;
     const snapshot = changedContext ? { ...this.snapshot, ...EmptyResponse,
       sessionIdentifier: current.session?.identifier ?? null, hostDeviceIdentifier: current.session?.hostDeviceIdentifier ?? null } : this.snapshot;

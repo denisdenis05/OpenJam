@@ -4,14 +4,14 @@ import type { SpotifyConnectMetadataPort } from '../contracts/connectMetadata';
 import { SpotifyConnectCatalog } from './connect/SpotifyConnectCatalog';
 import type { AssociationStore, CatalogSong, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
 import type { Clock, HttpExecutor, Scheduler, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
-import type { HostedQueueReader } from '../contracts/hostedQueue';
+import type { HostedQueueReader, JamGuestObservationVerifier } from '../contracts/hostedQueue';
 import type { JamQueueProtocol } from '../contracts/queue';
 import type { HostedPlaybackCommandProtocol } from '../contracts/hostedPlaybackCommands';
 import { SpotifyWebPlaybackCommandProtocol } from './playback/SpotifyWebPlaybackCommandProtocol';
 import { CandidateRanker } from './catalog/CandidateRanker';
 import { SpotifyWebCatalog } from './catalog/SpotifyWebCatalog';
 import { TrackTranslator } from './catalog/TrackTranslator';
-import { combineCancellation } from './network/Cancellation';
+import { combineCancellation, withCancellation } from './network/Cancellation';
 import { SpotifyCredentialSession } from './network/SpotifyCredentialSession';
 import { SpotifyRequestClient } from './network/SpotifyRequestClient';
 import { JamSessionClient } from './session/JamSessionClient';
@@ -48,6 +48,7 @@ export interface SpotifyJamDependencies {
   readonly queueProtocol?: JamQueueProtocol;
   readonly enableHostedQueueObservation?: boolean;
   readonly hostedQueueReader?: HostedQueueReader;
+  readonly guestObservationVerifier?: JamGuestObservationVerifier;
   readonly scheduler?: Scheduler;
   readonly enableMembershipObservation?: boolean;
   readonly membershipRequestIdentifiers?: () => string;
@@ -68,9 +69,11 @@ export class SpotifyJamRuntime {
   private readonly playbackReader: HostedPlaybackReader | null;
   private readonly recordings: RecordingCatalog;
   private readonly accountIdentifier: string;
+  private readonly guestObservationVerifier: JamGuestObservationVerifier | undefined;
 
   constructor(dependencies: SpotifyJamDependencies) {
     this.accountIdentifier = dependencies.accountIdentifier;
+    this.guestObservationVerifier = dependencies.guestObservationVerifier;
     this.recordings = dependencies.recordings;
     this.credentials = new SpotifyCredentialSession(dependencies.accountIdentifier, dependencies.credentials, dependencies.clock);
     const requests = new SpotifyRequestClient(dependencies.requests, this.credentials);
@@ -87,7 +90,7 @@ export class SpotifyJamRuntime {
         ?? (this.playbackReader ? new SpotifyWebPlaybackCommandProtocol(requests, this.playbackReader) : null) : null, dependencies.sharedStateVerifier);
     this.recordingQueue = new RecordingQueueCoordinator(this.translator, this.sessions);
     this.hostedQueue = new HostedQueueObserver(this.sessions, dependencies.hostedQueueReader ?? new SpotifyWebHostedQueueReader(requests),
-      dependencies.clock, dependencies.enableHostedQueueObservation, dependencies.scheduler);
+      dependencies.clock, dependencies.enableHostedQueueObservation, dependencies.scheduler, dependencies.guestObservationVerifier);
     this.membership = new JamMembershipObserver(this.sessions, dependencies.clock, dependencies.enableMembershipObservation,
       dependencies.membershipRequestIdentifiers, dependencies.scheduler);
   }
@@ -128,7 +131,9 @@ export class SpotifyJamRuntime {
       checkCancellation(scope.signal);
       if (!this.playbackReader) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
       const identity = this.hostedPlaybackIdentity();
+      await this.verifyGuestObservation(identity, scope.signal);
       const sample = await this.playbackReader.read(identity.authorityIdentifier, scope.signal);
+      await this.verifyGuestObservation(identity, scope.signal);
       checkCancellation(scope.signal);
       let currentIdentity: SharedPlaybackIdentity;
       try { currentIdentity = this.hostedPlaybackIdentity(); } catch { throw new IntegrationFailure(IntegrationFailureCode.Superseded); }
@@ -137,12 +142,25 @@ export class SpotifyJamRuntime {
     } finally { scope.dispose(); }
   }
 
+  private async verifyGuestObservation(identity: SharedPlaybackIdentity, cancellation: AbortSignal): Promise<void> {
+    let currentIdentity: SharedPlaybackIdentity;
+    try { currentIdentity = this.hostedPlaybackIdentity(); } catch { throw new IntegrationFailure(IntegrationFailureCode.Superseded); }
+    if (!samePlaybackIdentity(identity, currentIdentity)) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+    if (this.sessions.getSnapshot().session?.ownedByCurrentAccount) return;
+    if (!this.guestObservationVerifier) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+    await withCancellation(this.guestObservationVerifier.verify({ accountIdentifier: identity.accountIdentifier,
+      sessionIdentifier: identity.sessionIdentifier, hostDeviceIdentifier: identity.authorityIdentifier }, cancellation), cancellation);
+    checkCancellation(cancellation);
+    try { currentIdentity = this.hostedPlaybackIdentity(); } catch { throw new IntegrationFailure(IntegrationFailureCode.Superseded); }
+    if (!samePlaybackIdentity(identity, currentIdentity)) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
+  }
+
   private hostedPlaybackIdentity(): SharedPlaybackIdentity {
     const snapshot = this.sessions.getSnapshot();
     if (!snapshot.accountIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
     if (snapshot.accountIdentifier !== this.accountIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
     if (!snapshot.session) throw new IntegrationFailure(IntegrationFailureCode.NotFound);
-    if (!snapshot.session.ownedByCurrentAccount) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
+    if (!snapshot.session.ownedByCurrentAccount && (!this.guestObservationVerifier || !snapshot.session.participants.some(participant => participant.identifier === snapshot.accountIdentifier))) throw new IntegrationFailure(IntegrationFailureCode.Forbidden);
     if (!snapshot.session.active || !snapshot.session.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unsupported);
     if (snapshot.status !== JamConnectionStatus.Ready && snapshot.status !== JamConnectionStatus.Operating) {
       throw new IntegrationFailure(snapshot.failure ?? IntegrationFailureCode.UnknownOutcome);
