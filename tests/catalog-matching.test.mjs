@@ -3,15 +3,15 @@ import test from 'node:test';
 import { library, Values, cancellation, song, spotifySong, translatorFixture, deferred } from './fixtures.mjs';
 
 const Names = Object.freeze({
-  minimumSchema: 'Minimum title and artist evidence stays ambiguous until confirmed',
+  minimumSchema: 'Exact title and full artist identity match without duration',
   duration: 'Matching duration corroborates exact title and artist',
   durationBoundary: 'Duration tolerance includes its exact boundary',
-  conflict: 'Conflicting duration vetoes even a shared recording code',
-  code: 'Recording codes corroborate different titles for the same artist',
+  conflict: 'Different duration does not veto exact title and artist identity',
+  code: 'Recording codes cannot override different title text',
   version: 'Live and remix suffixes prevent an automatic studio match',
   unicode: 'Unicode accents and punctuation normalize without losing artist identity',
   multipleArtists: 'Artist order is irrelevant but missing collaborators prevent an automatic match',
-  duplicates: 'Equally supported different durations remain ambiguous within tolerance',
+  duplicates: 'Equivalent title and artist recordings tolerate differing durations',
   duplicateIdentifier: 'Repeated identifiers do not create false ambiguity',
   unavailable: 'Unavailable Spotify tracks are not selected',
   unrelated: 'A shared artist without title or code evidence is not found',
@@ -37,8 +37,8 @@ const Names = Object.freeze({
 
 test(Names.minimumSchema, () => {
   const result = new library.CandidateRanker().rank(song(), [spotifySong()]);
-  assert.equal(result.status, library.MatchStatus.Ambiguous);
-  assert.equal(result.selected, null);
+  assert.equal(result.status, library.MatchStatus.Matched);
+  assert.equal(result.selected.identifier, Values.spotifyIdentifier);
 });
 
 test(Names.duration, () => {
@@ -57,13 +57,13 @@ test(Names.durationBoundary, () => {
 test(Names.conflict, () => {
   const result = new library.CandidateRanker().rank(song({ durationMilliseconds: Values.durationMilliseconds, recordingCodes: [Values.recordingCode] }),
     [spotifySong({ durationMilliseconds: Values.differentDurationMilliseconds, recordingCodes: [Values.recordingCode] })]);
-  assert.equal(result.selected, null);
+  assert.equal(result.status, library.MatchStatus.Matched);
 });
 
 test(Names.code, () => {
   const result = new library.CandidateRanker().rank(song({ recordingCodes: [Values.recordingCode] }),
     [spotifySong({ title: Values.unrelatedTitle, recordingCodes: [Values.recordingCode] })]);
-  assert.equal(result.status, library.MatchStatus.Matched);
+  assert.equal(result.selected, null);
 });
 
 test(Names.version, () => {
@@ -92,7 +92,7 @@ test(Names.duplicates, () => {
   const source = song({ durationMilliseconds: Values.durationMilliseconds });
   const result = new library.CandidateRanker().rank(source, [spotifySong({ durationMilliseconds: Values.durationMilliseconds }),
     spotifySong({ identifier: Values.otherSpotifyIdentifier, durationMilliseconds: Values.boundaryDurationMilliseconds })]);
-  assert.equal(result.status, library.MatchStatus.Ambiguous);
+  assert.equal(result.status, library.MatchStatus.Matched);
 });
 
 test(Names.duplicateIdentifier, () => {
@@ -163,7 +163,10 @@ test(Names.changed, async () => {
 test(Names.market, async () => {
   const fixture = translatorFixture();
   await fixture.translator.confirm(Values.recordingIdentifier, Values.spotifyIdentifier, Values.market, cancellation().signal);
-  assert.equal((await fixture.translator.toSpotify(Values.recordingIdentifier, Values.otherMarket, cancellation().signal)).status, library.MatchStatus.Ambiguous);
+  const result = await fixture.translator.toSpotify(Values.recordingIdentifier, Values.otherMarket, cancellation().signal);
+  assert.equal(result.status, library.MatchStatus.Matched);
+  assert.equal(fixture.calls.spotifySearch, Values.singleResultCount);
+  assert.ok(!result.candidates[Values.firstPosition].evidence.includes(library.MatchEvidence.Confirmed));
 });
 
 test(Names.manyTracks, async () => {

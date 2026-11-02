@@ -93,17 +93,44 @@ platform enforcement still needs device validation.
 ## Matching
 
 The matcher is deterministic and independent of networking. It normalizes text,
-compares artist sets and known version suffixes, and considers duration/codes.
-Live/remix/version and recording-code contradictions prevent automatic selection.
-Insufficient evidence or closely ranked distinct candidates remain ambiguous.
+compares complete artist sets and exact normalized full titles. Duration and
+recording codes add ranking evidence; missing or differing duration does not
+veto selection. Version labels remain meaningful title text, with no separate
+version acceptance gate. Recording-code contradictions and unavailability prevent
+automatic selection. Closely ranked distinct candidates remain ambiguous.
 An acceptable leading candidate may share its selection margin with equivalent
-recordings from other releases: normalized full title, complete artist set and
-version must agree, and candidate durations must be present and exactly equal.
+recordings from other releases: normalized full title and complete artist set
+must agree. Missing or differing duration does not split an equivalent group.
 Every close competitor must independently be acceptable. Known recording-code
 sets must agree pairwise; absent codes cannot bridge contradictory known codes.
 The existing identifier order chooses a stable representative while retaining
 all candidates. This does not fingerprint audio or guarantee exact recording
 identity from metadata.
+
+An optional `RecordingImportMatcher` reuses the application's real read-only
+playlist import preview after strict matching fails. Forward translation submits
+the actual bounded Spotify candidates and accepts only an exact import mapping
+to the source recording's database identifier. Reverse translation submits the
+actual Spotify source and looks up exact mapped recording identifiers, including
+records omitted by strict candidate search. Import responses must contain unique
+Spotify identifiers from the supplied batch; malformed, foreign or stale canceled
+results fail. Strict successful matches never call this service.
+
+Import evidence is not a stored confirmation or sufficient recording evidence by
+itself. The ranker additionally requires equal normalized titles after the same
+bracketed `feat`/`ft` removal used by the server importer and an exact shared
+artist credit. This path does not require duration or a separate version comparison:
+missing or differing duration does not defeat an exact importer mapping. Version
+labels outside featured-credit annotations remain part of the base title and
+therefore must match as title text. Recording-code and availability
+contradictions still veto selection. Only this exact database
+mapping can corroborate release-level artist fallback. Other fuzzy suggestions
+and unrelated artists remain unconfirmed. Equivalent-release grouping still
+requires complete candidate artist sets and pairwise recording evidence; the
+import path does not merge different candidate credits. The host application
+injects the importer; the library does not duplicate its fuzzy ranking or make
+additional Spotify requests. Policy version changes invalidate older stored
+associations under the previous policy.
 
 Confirmed associations are distinct from unconfirmed search results. Both
 directions validate relevant metadata fingerprints rather than inverting a

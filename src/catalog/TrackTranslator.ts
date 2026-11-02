@@ -1,18 +1,23 @@
 import { MatchEvidence, MatchStatus } from '../../contracts/catalog';
-import type { AssociationStore, CatalogSong, ConfirmedAssociation, MatchResult, RecordingCatalog, SpotifyCatalog, SpotifySong } from '../../contracts/catalog';
+import type { AssociationStore, CatalogSong, ConfirmedAssociation, MatchResult, RecordingCatalog, RecordingImportMatch, RecordingImportMatcher, SpotifyCatalog, SpotifySong } from '../../contracts/catalog';
 import { IntegrationFailureCode } from '../../contracts/network';
 import { checkCancellation, failureCode, IntegrationFailure } from '../network/IntegrationFailure';
 import { CandidateRanker } from './CandidateRanker';
+import { withCancellation } from '../network/Cancellation';
 import { copySong, songFingerprint } from './SongIdentity';
 
 const FirstPosition = 0;
+const EmptyMatchCount = 0;
+const TextType = 'string';
+const BooleanType = 'boolean';
 const SingleCandidateCount = 1;
 const ConfirmedScore = 100;
 const ValidMarket = /^[A-Z]{2}$/;
 
 export class TrackTranslator {
   constructor(private readonly recordings: RecordingCatalog, private readonly spotify: SpotifyCatalog,
-    private readonly ranker: CandidateRanker, private readonly associations: AssociationStore) {}
+    private readonly ranker: CandidateRanker, private readonly associations: AssociationStore,
+    private readonly recordingImportMatcher?: RecordingImportMatcher) {}
 
   async toSpotify(identifier: string, market: string, cancellation: AbortSignal): Promise<MatchResult<SpotifySong>> {
     try {
@@ -20,6 +25,7 @@ export class TrackTranslator {
       const source = await this.recordings.lookup(identifier, cancellation);
       checkCancellation(cancellation);
       if (!source) return this.notFound();
+      if (source.identifier !== identifier) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
       const capturedSource = copySong(source);
       const associations = await this.associations.findForRecording(this.recordings.identity, identifier, market);
       checkCancellation(cancellation);
@@ -34,7 +40,13 @@ export class TrackTranslator {
       const candidates = await this.spotify.search({ title: capturedSource.title, author: capturedSource.author,
         limit: this.ranker.policy.maximumCandidates }, market, cancellation);
       checkCancellation(cancellation);
-      return this.ranker.rank(capturedSource, candidates);
+      const capturedCandidates = candidates.slice(FirstPosition, this.ranker.policy.maximumCandidates).map(copySong);
+      const strict = this.ranker.rank(capturedSource, capturedCandidates);
+      if (strict.status === MatchStatus.Matched || !this.recordingImportMatcher || capturedCandidates.length === EmptyMatchCount) return strict;
+      const imported = await this.importMatches(capturedCandidates, cancellation);
+      const confirmedIdentifiers = imported.filter(match => match.exact && match.recordingIdentifier === capturedSource.identifier)
+        .map(match => match.spotifyIdentifier);
+      return this.ranker.rankWithImportMatches(capturedSource, capturedCandidates, confirmedIdentifiers);
     } catch (failure) { return this.failed(failure); }
   }
 
@@ -44,6 +56,7 @@ export class TrackTranslator {
       const source = await this.spotify.lookup(identifier, market, cancellation);
       checkCancellation(cancellation);
       if (!source) return this.notFound();
+      if (source.identifier !== identifier) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
       const capturedSource = copySong(source);
       const associations = await this.associations.findForSpotify(this.recordings.identity, identifier, market);
       checkCancellation(cancellation);
@@ -58,7 +71,20 @@ export class TrackTranslator {
       const candidates = await this.recordings.search({ title: capturedSource.title, author: capturedSource.author,
         limit: this.ranker.policy.maximumCandidates }, cancellation);
       checkCancellation(cancellation);
-      return this.ranker.rank(capturedSource, candidates);
+      const capturedCandidates = candidates.slice(FirstPosition, this.ranker.policy.maximumCandidates).map(copySong);
+      const strict = this.ranker.rank(capturedSource, capturedCandidates);
+      if (strict.status === MatchStatus.Matched || !this.recordingImportMatcher) return strict;
+      const imported = await this.importMatches([capturedSource], cancellation);
+      const confirmedIdentifiers = [...new Set(imported.filter(match => match.exact).map(match => match.recordingIdentifier))];
+      for (const recordingIdentifier of confirmedIdentifiers) {
+        if (capturedCandidates.some(candidate => candidate.identifier === recordingIdentifier)) continue;
+        const target = await withCancellation(this.recordings.lookup(recordingIdentifier, cancellation), cancellation);
+        checkCancellation(cancellation);
+        if (!target) continue;
+        if (target.identifier !== recordingIdentifier) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+        capturedCandidates.unshift(copySong(target));
+      }
+      return this.ranker.rankWithImportMatches(capturedSource, capturedCandidates, confirmedIdentifiers);
     } catch (failure) { return this.failed(failure); }
   }
 
@@ -76,6 +102,22 @@ export class TrackTranslator {
         spotifyFingerprint: songFingerprint(copySong(spotify)) }));
       checkCancellation(cancellation);
     } catch (failure) { throw new IntegrationFailure(failureCode(failure)); }
+  }
+
+  private async importMatches(songs: readonly SpotifySong[], cancellation: AbortSignal): Promise<readonly RecordingImportMatch[]> {
+    checkCancellation(cancellation);
+    const matches = await withCancellation(this.recordingImportMatcher!.match(Object.freeze(songs.map(copySong)), cancellation), cancellation);
+    checkCancellation(cancellation);
+    const spotifyIdentifiers = new Set(songs.map(song => song.identifier));
+    if (!Array.isArray(matches) || matches.length > songs.length) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+    const returnedSpotifyIdentifiers = new Set<string>();
+    return Object.freeze(matches.map(match => {
+      if (!match || typeof match.spotifyIdentifier !== TextType || !spotifyIdentifiers.has(match.spotifyIdentifier)
+          || typeof match.recordingIdentifier !== TextType || !match.recordingIdentifier.trim()
+          || typeof match.exact !== BooleanType || returnedSpotifyIdentifiers.has(match.spotifyIdentifier)) throw new IntegrationFailure(IntegrationFailureCode.InvalidResponse);
+      returnedSpotifyIdentifiers.add(match.spotifyIdentifier);
+      return Object.freeze({ spotifyIdentifier: match.spotifyIdentifier, recordingIdentifier: match.recordingIdentifier, exact: match.exact });
+    }));
   }
 
   private applicable(association: ConfirmedAssociation): boolean {

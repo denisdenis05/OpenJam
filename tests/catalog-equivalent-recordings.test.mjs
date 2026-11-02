@@ -11,8 +11,8 @@ const EquivalentRecordingValues = Object.freeze({
 const Names = Object.freeze({
   releaseOrder: 'Equivalent recordings across releases select the same identifier regardless of search order',
   normalizedIdentity: 'Equivalent recording identity uses normalized titles and complete unordered recording artist sets',
-  differentDuration: 'A one millisecond duration difference does not establish equivalent recordings',
-  missingDuration: 'Matching recording codes without complete durations retain ambiguity between identifiers',
+  differentDuration: 'Different duration does not prevent equivalent exact title and artist recordings',
+  missingDuration: 'Missing duration does not prevent equivalent recording code title and artist grouping',
   normalizedCodes: 'Equivalent candidates accept equal normalized recording code sets independent of order and duplicates',
   conflictingCodes: 'Conflicting candidate recording codes retain ambiguity when source codes are absent',
   overlappingCodes: 'Partially overlapping recording code sets do not establish equivalence',
@@ -59,16 +59,18 @@ test(Names.normalizedIdentity, () => {
 });
 
 test(Names.differentDuration, () => {
-  assertAmbiguous(sourceRecording(), [candidateRecording(), candidateRecording({
+  const result = new library.CandidateRanker().rank(sourceRecording(), [candidateRecording(), candidateRecording({
     identifier: Values.otherSpotifyIdentifier, durationMilliseconds: EquivalentRecordingValues.almostIdenticalDurationMilliseconds,
   })]);
+  assert.equal(result.status, library.MatchStatus.Matched);
 });
 
 test(Names.missingDuration, () => {
-  assertAmbiguous(song({ recordingCodes: [Values.recordingCode] }), [
+  const result = new library.CandidateRanker().rank(song({ recordingCodes: [Values.recordingCode] }), [
     spotifySong({ recordingCodes: [Values.recordingCode] }),
     spotifySong({ identifier: Values.otherSpotifyIdentifier, recordingCodes: [Values.recordingCode] }),
   ]);
+  assert.equal(result.status, library.MatchStatus.Matched);
 });
 
 test(Names.normalizedCodes, () => {

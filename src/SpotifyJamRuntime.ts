@@ -2,7 +2,7 @@ import type { SpotifyConnectSearchPort } from '../contracts/connectSearch';
 import type { JamSharedStateVerifier } from '../contracts/sharedStateReconciliation';
 import type { SpotifyConnectMetadataPort } from '../contracts/connectMetadata';
 import { SpotifyConnectCatalog } from './connect/SpotifyConnectCatalog';
-import type { AssociationStore, CatalogSong, MatchResult, MatchingPolicy, RecordingCatalog, SpotifySong } from '../contracts/catalog';
+import type { AssociationStore, CatalogSong, MatchResult, MatchingPolicy, RecordingCatalog, RecordingImportMatcher, SpotifySong } from '../contracts/catalog';
 import type { Clock, HttpExecutor, Scheduler, SpotifyCredentialProvider, SpotifyEndpointResolver } from '../contracts/network';
 import type { HostedQueueReader, JamGuestObservationVerifier } from '../contracts/hostedQueue';
 import type { JamQueueProtocol } from '../contracts/queue';
@@ -38,6 +38,7 @@ export interface SpotifyJamDependencies {
   readonly credentials: SpotifyCredentialProvider;
   readonly endpoints: SpotifyEndpointResolver;
   readonly recordings: RecordingCatalog;
+  readonly recordingImportMatcher?: RecordingImportMatcher;
   readonly associations: AssociationStore;
   readonly requests: HttpExecutor;
   readonly clock: Clock;
@@ -82,7 +83,7 @@ export class SpotifyJamRuntime {
     const webCatalog = new SpotifyWebCatalog(requests);
     const spotifyCatalog = dependencies.connectMetadata ? new SpotifyConnectCatalog(dependencies.connectMetadata, webCatalog, dependencies.accountIdentifier, dependencies.connectSearch) : webCatalog;
     this.translator = new TrackTranslator(dependencies.recordings, spotifyCatalog,
-      new CandidateRanker(dependencies.matchingPolicy), dependencies.associations);
+      new CandidateRanker(dependencies.matchingPolicy), dependencies.associations, dependencies.recordingImportMatcher);
     this.sessions = new JamSessionClient(dependencies.onSubscriberFailure, dependencies.experimentalMembership);
     this.sessions.attachAccount(dependencies.accountIdentifier,
       new SpotifyHttpJamProtocol(requests, dependencies.endpoints, dependencies.experimentalMembership),

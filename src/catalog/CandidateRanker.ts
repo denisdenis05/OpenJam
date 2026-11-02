@@ -2,10 +2,10 @@ import { ArtistCreditSource, MatchEvidence, MatchStatus } from '../../contracts/
 import type { CatalogSong, MatchCandidate, MatchingPolicy, MatchResult } from '../../contracts/catalog';
 import { IntegrationFailureCode } from '../../contracts/network';
 import { IntegrationFailure } from '../network/IntegrationFailure';
-import { artistIdentity, copySong, normalizeSongText, versionIdentity } from './SongIdentity';
+import { artistIdentity, copySong, hasSharedRecordingArtist, importRecordingTitle, normalizeSongText, versionIdentity } from './SongIdentity';
 
 export const DefaultMatchingPolicy: MatchingPolicy = Object.freeze({
-  version: 'recording-evidence-v2', maximumCandidates: 20,
+  version: 'recording-evidence-v3', maximumCandidates: 20,
   durationToleranceMilliseconds: 2000, minimumSelectionMargin: 10,
 });
 
@@ -28,13 +28,19 @@ export class CandidateRanker {
   }
 
   rank<Song extends CatalogSong>(source: CatalogSong, songs: readonly Song[]): MatchResult<Song> {
+    return this.rankWithImportMatches(source, songs, []);
+  }
+
+  rankWithImportMatches<Song extends CatalogSong>(source: CatalogSong, songs: readonly Song[],
+    confirmedCandidateIdentifiers: readonly string[]): MatchResult<Song> {
+    const importedIdentifiers = new Set(confirmedCandidateIdentifiers);
     const capturedSource = copySong(source);
     const identifiers = new Set<string>();
     const candidates: MatchCandidate<Song>[] = [];
     for (const song of songs.slice(RankingBounds.firstPosition, this.policy.maximumCandidates)) {
       if (identifiers.has(song.identifier)) continue;
       identifiers.add(song.identifier);
-      candidates.push(this.score(capturedSource, copySong(song)));
+      candidates.push(this.score(capturedSource, copySong(song), importedIdentifiers.has(song.identifier)));
     }
     candidates.sort((left, right) => right.score - left.score || this.compareIdentifiers(left.song.identifier, right.song.identifier));
     const first = candidates[RankingBounds.firstPosition];
@@ -55,28 +61,28 @@ export class CandidateRanker {
   }
 
   private areEquivalentRecordings(left: CatalogSong, right: CatalogSong): boolean {
-    if (left.durationMilliseconds === undefined || right.durationMilliseconds === undefined
-        || left.durationMilliseconds !== right.durationMilliseconds
-        || normalizeSongText(left.title) !== normalizeSongText(right.title)
-        || artistIdentity(left) !== artistIdentity(right) || versionIdentity(left) !== versionIdentity(right)) return false;
+    if (normalizeSongText(left.title) !== normalizeSongText(right.title)
+        || artistIdentity(left) !== artistIdentity(right)) return false;
     const leftCodes = [...new Set((left.recordingCodes ?? []).map(normalizeSongText))].sort();
     const rightCodes = [...new Set((right.recordingCodes ?? []).map(normalizeSongText))].sort();
     return leftCodes.length === RankingBounds.emptyRecordingCodeCount || rightCodes.length === RankingBounds.emptyRecordingCodeCount
       || JSON.stringify(leftCodes) === JSON.stringify(rightCodes);
   }
 
-  private score<Song extends CatalogSong>(source: CatalogSong, song: Song): MatchCandidate<Song> {
+  private score<Song extends CatalogSong>(source: CatalogSong, song: Song, imported: boolean): MatchCandidate<Song> {
     const evidence: MatchEvidence[] = [];
     let score = EvidenceScore.none;
     const titleMatches = normalizeSongText(source.title) === normalizeSongText(song.title);
-    const artistMatches = artistIdentity(source) === artistIdentity(song);
     const versionConflict = versionIdentity(source) !== versionIdentity(song);
-    const unavailable = AvailableProperty in song && (song as CatalogSong & { playable?: boolean }).playable === false;
+    const unavailable = [source, song].some(candidate => AvailableProperty in candidate
+      && (candidate as CatalogSong & { playable?: boolean }).playable === false);
     if (titleMatches) { evidence.push(MatchEvidence.Title); score += EvidenceScore.title; }
-    if (artistMatches) { evidence.push(MatchEvidence.Artist); score += EvidenceScore.artist; }
     const durationMatches = source.durationMilliseconds !== undefined && song.durationMilliseconds !== undefined
       && Math.abs(source.durationMilliseconds - song.durationMilliseconds) <= this.policy.durationToleranceMilliseconds;
-    const durationConflict = source.durationMilliseconds !== undefined && song.durationMilliseconds !== undefined && !durationMatches;
+    const importedIdentityMatches = imported && importRecordingTitle(source.title) === importRecordingTitle(song.title)
+      && hasSharedRecordingArtist(source, song);
+    const artistMatches = artistIdentity(source) === artistIdentity(song) || importedIdentityMatches;
+    if (artistMatches) { evidence.push(MatchEvidence.Artist); score += EvidenceScore.artist; }
     if (durationMatches) { evidence.push(MatchEvidence.Duration); score += EvidenceScore.duration; }
     const recordingCodes = new Set((source.recordingCodes ?? []).map(normalizeSongText));
     const codeMatches = (song.recordingCodes ?? []).some(code => recordingCodes.has(normalizeSongText(code)));
@@ -87,8 +93,10 @@ export class CandidateRanker {
     if (versionConflict) evidence.push(MatchEvidence.VersionConflict);
     if (unavailable) evidence.push(MatchEvidence.Unavailable);
     const releaseCreditOnly = source.artistCreditSource === ArtistCreditSource.Release || song.artistCreditSource === ArtistCreditSource.Release;
-    const acceptable = artistMatches && !versionConflict && !durationConflict && !codeConflict && !unavailable && !releaseCreditOnly
-      && (codeMatches || (titleMatches && durationMatches));
+    if (importedIdentityMatches) evidence.push(MatchEvidence.Import);
+    const strictIdentityMatches = artistMatches && !releaseCreditOnly && titleMatches;
+    const acceptable = !codeConflict && !unavailable
+      && (importedIdentityMatches || strictIdentityMatches);
     return Object.freeze({ song, score, evidence: Object.freeze(evidence), acceptable });
   }
 

@@ -13,6 +13,7 @@ const VersionLabel = /\b(live|remix|acoustic|instrumental|radio edit|sped up|slo
 const CapturedSuffixIndex = 1;
 const MinimumDurationMilliseconds = 0;
 const FirstPosition = 0;
+const ImportedFeaturedArtistAnnotation = /\s*[\[\(]\s*(feat|ft)\.?\s+.*?[\]\)]/gi;
 
 export function normalizeSongText(value: string): string {
   return value.normalize(UnicodeNormalization).replace(CombiningMarks, EmptyText)
@@ -38,6 +39,15 @@ const TextType = 'string';
 export function artistIdentity(song: CatalogSong): string {
   const names = song.artistNames?.length ? song.artistNames : [song.author];
   return JSON.stringify([...new Set(names.map(normalizeSongText))].sort());
+}
+
+export function importRecordingTitle(title: string): string {
+  return normalizeSongText(title.replace(ImportedFeaturedArtistAnnotation, EmptyText).trim());
+}
+
+export function hasSharedRecordingArtist(left: CatalogSong, right: CatalogSong): boolean {
+  const leftNames = new Set((left.artistNames?.length ? left.artistNames : [left.author]).map(normalizeSongText));
+  return (right.artistNames?.length ? right.artistNames : [right.author]).some(name => leftNames.has(normalizeSongText(name)));
 }
 
 export function versionIdentity(song: CatalogSong): string {

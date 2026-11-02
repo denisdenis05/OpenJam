@@ -2,6 +2,7 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
+| Actual import preview fallback in both directions, exact database identity, featured-title normalization and expanded credits, missing/different duration support, base-title/code/availability safeguards, strict success bypass, malformed/foreign/duplicate responses and cancellation | `tests/catalog-expanded-credits.test.mjs` |
 | Retained native host receipts preserve original HTTP timing, age and real queue identity; expired/backward clocks fail | `tests/connect-observation.test.mjs`; Mobile `SpotifyConnectObservationDecoderTest` |
 | Current unavailable/ambiguous match is retained across position and upcoming-only updates; new occurrence and explicit reattachment can retry | `tests/shared-playback.test.mjs` |
 | Actual bounded follower occurrence queue, immediate current playback, background upcoming matching, repeated tracks, queue replacement, missing/failed future recordings, partial-queue failure/counts without stopping current audio and prompt supersession | `tests/shared-playback.test.mjs`, `tests/connect-observation.test.mjs`; Mobile `FOLLOWER_QUEUE_PROGRESS.md` |
@@ -53,8 +54,8 @@
 | App recording preparation, explicit ambiguous selection, validation, immutable snapshots/session identity, cancellation before dispatch, receipt retention after dispatch, duplicate submission, confirmation failure and account/host retirement | `tests/recording-queue.test.mjs` |
 | Durable login encoding/configuration, restoration, account validation, refresh rotation, transient profile recovery, explicit logout vs disposal, canceled/stale writes, serialized account leases and sanitized storage errors | `tests/saved-login.test.mjs` |
 | Source-standard enforcement and negative fixtures | `tests/architecture.test.mjs` |
-| Minimal schema, duration/codes, version conflicts, Unicode, artist sets, ambiguity, duplicate candidates, availability and bounded ranking | `tests/catalog-matching.test.mjs` |
-| Deterministic equivalent-release recording selection, complete normalized identity, exact candidate durations, pairwise code compatibility and fail-closed variant/availability/credit boundaries | `tests/catalog-equivalent-recordings.test.mjs` |
+| Exact title/full artist identity, optional duration/code evidence, meaningful version title text, Unicode, ambiguity, duplicate candidates, availability and bounded ranking | `tests/catalog-matching.test.mjs` |
+| Deterministic equivalent-release recording selection, complete normalized identity, optional candidate durations, pairwise code compatibility and fail-closed variant/availability/credit boundaries | `tests/catalog-equivalent-recordings.test.mjs` |
 | Both translation directions, confirmation, invalidation, market isolation, many-to-one identity, missing sources, typed failures and cancellation | `tests/catalog-matching.test.mjs` |
 | Queryable three-field provider, bounded/copying behavior and input validation | `tests/catalog-providers.test.mjs` |
 | MusicBrainz escaping, metadata decoding, identifiers, missing entries and public-service interval validation | `tests/catalog-providers.test.mjs` |

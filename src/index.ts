@@ -36,6 +36,7 @@ export * from './catalog/QueryableRecordingCatalog';
 export * from './catalog/SpotifyWebCatalog';
 export * from './catalog/StreamingServiceRecordingQuery';
 export * from './catalog/TrackTranslator';
+export { importRecordingTitle } from './catalog/SongIdentity';
 export * from './network/FetchHttpExecutor';
 export * from './network/IntegrationFailure';
 export * from './network/PacedJsonReader';

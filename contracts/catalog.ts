@@ -25,6 +25,16 @@ export interface SpotifySong extends CatalogSong {
   readonly playable?: boolean;
 }
 
+export interface RecordingImportMatch {
+  readonly spotifyIdentifier: string;
+  readonly recordingIdentifier: string;
+  readonly exact: boolean;
+}
+
+export interface RecordingImportMatcher {
+  match(songs: readonly SpotifySong[], cancellation: AbortSignal): Promise<readonly RecordingImportMatch[]>;
+}
+
 export interface CatalogSearch {
   readonly title: string;
   readonly author: string;
@@ -52,6 +62,7 @@ export enum MatchStatus {
 
 export enum MatchEvidence {
   Confirmed = 'confirmed',
+  Import = 'import',
   RecordingCode = 'recording-code',
   RecordingCodeConflict = 'recording-code-conflict',
   Title = 'title',

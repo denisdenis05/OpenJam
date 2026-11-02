@@ -958,3 +958,42 @@ matching Kotlin decoder and dedicated JVM regressions are recorded separately.
 This is a source reproduction and fix of the receipt contract mismatch, not a
 claim that the emulator's queue panel or a second Spotify account is verified.
 The owning session must test the integrated build without repeated searches.
+
+## Track matching and actual import preview — 2026-11-02
+
+Exact normalized full title and complete artist identity now suffice for strict
+automatic matching. Duration remains optional ranking evidence; missing or
+differing duration does not veto matching or split otherwise equivalent
+recordings. Version text remains meaningful title text, with no independent
+version acceptance gate. Known recording-code contradictions, unavailable media
+and distinct closely ranked recording identities remain unselected. Equivalent
+release candidates retain full artist-set and pairwise recording-code guards.
+The policy version is `recording-evidence-v3`, invalidating prior policy-scoped
+stored associations.
+
+When strict matching fails, an optional injected `RecordingImportMatcher` reuses
+the real application's read-only import preview. Forward matching requires its
+exact database recording identifier to equal the requested local recording.
+Reverse matching looks up its exact database identifier even when strict search
+did not return that record. Neither path adds a Spotify request or retries a
+search. Exact import evidence still requires normalized base title equality,
+using the importer's bracketed feat/ft removal, and an exact shared artist credit.
+This permits Spotify's additional performer credits and corroborated release
+artist fallback. Duration and separate version checks do not gate the import
+path. Literal live/remix title text outside artist annotations remains part of
+the title. Unrelated artists, title differences, code contradictions and
+unavailable media remain rejected. The import port is application supplied;
+there are no new application runtime imports in this library.
+
+`tests/catalog-expanded-credits.test.mjs` adds 41 dedicated cases covering both
+translation directions, public-name Raid/Madvillain expanded-credit fixtures,
+All Caps and Accordion fixtures with Madvillain credits,
+missing/different durations, duplicate releases, title annotations, unrelated
+artists, import suggestions versus exact identity, foreign/duplicate/malformed
+responses, strict success bypass, actual lookup identity, cancellation and
+runtime disposal. Existing strict/equivalent tests document the updated title
+and optional duration policy. `npm test` passed architecture checks, TypeScript
+and 712 cases; `/tmp/jam-import-tests.log` records the run. The fixtures are constructed test inputs, not observed Spotify metadata. These
+source checks do not establish that the emulator's current track now shares correctly. The
+mobile adapter, integrated APK and controlled live track test remain separate
+verification steps owned by the main session.
