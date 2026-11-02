@@ -125,9 +125,13 @@ labels outside featured-credit annotations remain part of the base title and
 therefore must match as title text. Recording-code and availability
 contradictions still veto selection. Only this exact database
 mapping can corroborate release-level artist fallback. Other fuzzy suggestions
-and unrelated artists remain unconfirmed. Equivalent-release grouping still
-requires complete candidate artist sets and pairwise recording evidence; the
-import path does not merge different candidate credits. The host application
+and unrelated artists remain unconfirmed. Strict-only equivalent-release grouping still requires complete candidate
+artist sets and pairwise recording evidence. When both acceptable candidates
+carry exact import proof to the same captured database recording, their base
+titles and an actual shared artist credit can establish equivalence despite
+expanded credit differences. Every candidate pair must retain compatible known
+recording-code sets; a missing code cannot bridge conflicting known codes. A
+strict-only candidate cannot borrow another candidate's import proof. The host application
 injects the importer; the library does not duplicate its fuzzy ranking or make
 additional Spotify requests. Policy version changes invalidate older stored
 associations under the previous policy.

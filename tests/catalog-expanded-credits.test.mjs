@@ -23,7 +23,7 @@ const Names = Object.freeze({
   recordingExpansion: 'An exact import identity can corroborate different credit set lengths',
   authorConflict: 'Exact artist credit overlap is checked instead of fuzzy author text',
   equivalent: 'Equivalent expanded Spotify recordings retain stable duplicate-release selection',
-  differentExpandedCredits: 'Different expanded candidate credits retain ambiguity',
+  differentExpandedCredits: 'Exact import proof groups otherwise equivalent expanded candidate credits',
   forwardTranslation: 'Recording translation applies the primary group expansion rule',
   reverseTranslation: 'Reverse translation applies the primary group expansion rule',
 });
@@ -126,7 +126,8 @@ test(Names.differentExpandedCredits, () => {
   const result = new library.CandidateRanker().rankWithImportMatches(recording(), [expanded(), expanded({
     identifier: Values.otherSpotifyIdentifier, artistNames: [Credits.group, Credits.producer],
   })], [Values.spotifyIdentifier, Values.otherSpotifyIdentifier]);
-  assert.equal(result.status, library.MatchStatus.Ambiguous);
+  assert.equal(result.status, library.MatchStatus.Matched);
+  assert.equal(result.selected.identifier, Values.spotifyIdentifier);
 });
 
 for (const scenario of [{ name: Names.forwardTranslation, reverse: false }, { name: Names.reverseTranslation, reverse: true }]) {
@@ -371,4 +372,72 @@ test(StrictCases.changedLookupIdentity, async () => {
   assert.equal((await fixture.translator.toSpotify(Values.recordingIdentifier, Values.market, cancellation().signal)).failure,
     library.IntegrationFailureCode.InvalidResponse);
   assert.equal(fixture.calls.length, Values.noInvocations);
+});
+
+
+const ImportedReleaseCases = Object.freeze({
+  incompleteProof: 'An expanded competing release without exact import proof remains ambiguous',
+  features: 'Exact imports group different featured annotations and artist credits across releases',
+  codes: 'Exact import groups retain pairwise conflicting recording code rejection',
+  unrelated: 'An exact import group cannot absorb an unrelated artist candidate',
+  wrongTitle: 'An exact import group cannot authorize an unrelated base title',
+  sameDatabaseRecord: 'Forward exact import grouping uses the same database recording for every candidate',
+});
+const ImportedReleaseValues = Object.freeze({
+  otherFeaturedTitle: 'Raid (ft. Example Guest)', otherFeaturedArtist: 'Example Guest',
+});
+
+function importedRaidCandidates() {
+  return [expanded({ title: RequestedRecording.featuredTitle, artistNames: [RequestedRecording.group, RequestedRecording.featuredArtist] }),
+    expanded({ identifier: Values.otherSpotifyIdentifier, title: ImportedReleaseValues.otherFeaturedTitle,
+      artistNames: [RequestedRecording.group, ImportedReleaseValues.otherFeaturedArtist] })];
+}
+
+function raidRecording() {
+  return recording({ title: RequestedRecording.title, author: RequestedRecording.group, artistNames: [RequestedRecording.group] });
+}
+
+test(ImportedReleaseCases.incompleteProof, () => {
+  const result = new library.CandidateRanker().rankWithImportMatches(recording({ artistNames: [Credits.group, Credits.producer] }), [expanded(), expanded({
+    identifier: Values.otherSpotifyIdentifier, artistNames: [Credits.group, Credits.producer],
+  })], [Values.spotifyIdentifier]);
+  assert.equal(result.status, library.MatchStatus.Ambiguous);
+});
+
+test(ImportedReleaseCases.features, () => {
+  for (const candidates of [importedRaidCandidates(), importedRaidCandidates().reverse()]) {
+    const result = new library.CandidateRanker().rankWithImportMatches(raidRecording(), candidates,
+      [Values.spotifyIdentifier, Values.otherSpotifyIdentifier]);
+    assert.equal(result.status, library.MatchStatus.Matched);
+    assert.equal(result.selected.identifier, Values.spotifyIdentifier);
+  }
+});
+
+test(ImportedReleaseCases.codes, () => {
+  const candidates = importedRaidCandidates().map((candidate, position) => ({ ...candidate,
+    recordingCodes: [position === Values.firstPosition ? Values.recordingCode : Values.otherRecordingCode] }));
+  const result = new library.CandidateRanker().rankWithImportMatches(raidRecording(), candidates,
+    [Values.spotifyIdentifier, Values.otherSpotifyIdentifier]);
+  assert.equal(result.selected, null);
+});
+
+test(ImportedReleaseCases.unrelated, () => {
+  const result = new library.CandidateRanker().rankWithImportMatches(raidRecording(),
+    [expanded({ title: RequestedRecording.featuredTitle, artistNames: [Credits.unrelatedGroup] })], [Values.spotifyIdentifier]);
+  assert.equal(result.selected, null);
+});
+
+test(ImportedReleaseCases.wrongTitle, () => {
+  const result = new library.CandidateRanker().rankWithImportMatches(raidRecording(),
+    [expanded({ title: Values.unrelatedTitle, artistNames: [RequestedRecording.group] })], [Values.spotifyIdentifier]);
+  assert.equal(result.selected, null);
+});
+
+test(ImportedReleaseCases.sameDatabaseRecord, async () => {
+  const fixture = importFixture([exactImport(), exactImport({ spotifyIdentifier: Values.otherSpotifyIdentifier })]);
+  fixture.recordingSongs.set(Values.recordingIdentifier, raidRecording());
+  for (const candidate of importedRaidCandidates()) fixture.spotifySongs.set(candidate.identifier, candidate);
+  const result = await fixture.translator.toSpotify(Values.recordingIdentifier, Values.market, cancellation().signal);
+  assert.equal(result.status, library.MatchStatus.Matched);
+  assert.equal(result.selected.identifier, Values.spotifyIdentifier);
 });

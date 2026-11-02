@@ -2,7 +2,7 @@
 
 | Functionality | Dedicated tests |
 | --- | --- |
-| Actual import preview fallback in both directions, exact database identity, featured-title normalization and expanded credits, missing/different duration support, base-title/code/availability safeguards, strict success bypass, malformed/foreign/duplicate responses and cancellation | `tests/catalog-expanded-credits.test.mjs` |
+| Actual import preview fallback in both directions, exact database identity, featured-title normalization and expanded credits, missing/different duration support, base-title/code/availability safeguards, same-recording import grouping across credit expansions, strict success bypass, malformed/foreign/duplicate responses and cancellation | `tests/catalog-expanded-credits.test.mjs` |
 | Retained native host receipts preserve original HTTP timing, age and real queue identity; expired/backward clocks fail | `tests/connect-observation.test.mjs`; Mobile `SpotifyConnectObservationDecoderTest` |
 | Current unavailable/ambiguous match is retained across position and upcoming-only updates; new occurrence and explicit reattachment can retry | `tests/shared-playback.test.mjs` |
 | Actual bounded follower occurrence queue, immediate current playback, background upcoming matching, repeated tracks, queue replacement, missing/failed future recordings, partial-queue failure/counts without stopping current audio and prompt supersession | `tests/shared-playback.test.mjs`, `tests/connect-observation.test.mjs`; Mobile `FOLLOWER_QUEUE_PROGRESS.md` |

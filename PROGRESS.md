@@ -997,3 +997,24 @@ and 712 cases; `/tmp/jam-import-tests.log` records the run. The fixtures are con
 source checks do not establish that the emulator's current track now shares correctly. The
 mobile adapter, integrated APK and controlled live track test remain separate
 verification steps owned by the main session.
+
+## Exact import grouping across expanded credits — 2026-11-02
+
+Two independently acceptable candidates with exact import proof to the captured
+source recording can now share a selection margin when their normalized import
+base titles and an actual artist credit agree, even when their additional
+performer credits differ. Previously full candidate artist-set equality still
+made these same-recording imports ambiguous. Strict-only grouping retains full
+title and artist-set equality. Every close competitor must be acceptable and
+every pair must have compatible known recording-code sets. An unrelated artist,
+different base title, missing exact proof or contradictory known codes cannot
+borrow another candidate's import evidence.
+
+Six dedicated regressions in `tests/catalog-expanded-credits.test.mjs` cover
+feature-credit differences across constructed Raid releases, deterministic
+selection in both input orders, matching the same actual import database
+identifier through the translator, missing proof and unrelated artist/title/code
+boundaries. The prior different-expanded-credit case now verifies exact-proof
+selection. `npm test` passed architecture checks, TypeScript and 718 cases;
+`/tmp/jam-import-group-tests.log` records this run. No live Spotify, emulator,
+APK or cross-account result is established by these source tests.

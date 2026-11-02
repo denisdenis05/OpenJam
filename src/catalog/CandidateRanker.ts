@@ -56,15 +56,19 @@ export class CandidateRanker {
     const competitors = candidates.slice(RankingBounds.secondPosition)
       .filter(candidate => first.score - candidate.score < this.policy.minimumSelectionMargin);
     return competitors.every(candidate => candidate.acceptable
-      && this.areEquivalentRecordings(first.song, candidate.song)
-      && competitors.every(other => this.areEquivalentRecordings(candidate.song, other.song)));
+      && this.areEquivalentRecordings(first, candidate)
+      && competitors.every(other => this.areEquivalentRecordings(candidate, other)));
   }
 
-  private areEquivalentRecordings(left: CatalogSong, right: CatalogSong): boolean {
-    if (normalizeSongText(left.title) !== normalizeSongText(right.title)
-        || artistIdentity(left) !== artistIdentity(right)) return false;
-    const leftCodes = [...new Set((left.recordingCodes ?? []).map(normalizeSongText))].sort();
-    const rightCodes = [...new Set((right.recordingCodes ?? []).map(normalizeSongText))].sort();
+  private areEquivalentRecordings(left: MatchCandidate, right: MatchCandidate): boolean {
+    const importEquivalent = left.evidence.includes(MatchEvidence.Import) && right.evidence.includes(MatchEvidence.Import)
+      && importRecordingTitle(left.song.title) === importRecordingTitle(right.song.title)
+      && hasSharedRecordingArtist(left.song, right.song);
+    const strictEquivalent = normalizeSongText(left.song.title) === normalizeSongText(right.song.title)
+      && artistIdentity(left.song) === artistIdentity(right.song);
+    if (!importEquivalent && !strictEquivalent) return false;
+    const leftCodes = [...new Set((left.song.recordingCodes ?? []).map(normalizeSongText))].sort();
+    const rightCodes = [...new Set((right.song.recordingCodes ?? []).map(normalizeSongText))].sort();
     return leftCodes.length === RankingBounds.emptyRecordingCodeCount || rightCodes.length === RankingBounds.emptyRecordingCodeCount
       || JSON.stringify(leftCodes) === JSON.stringify(rightCodes);
   }
