@@ -935,3 +935,26 @@ new cases in `tests/shared-playback.test.mjs` cover missing/ambiguous repeated
 observations, new current occurrence and explicit attachment recovery. `npm test`
 passed architecture checks, TypeScript and 656 cases. No live playback result is
 established by these checks.
+
+# Retained native hosting queue receipts — 2026-11-02
+
+Native hosting returns the actual successful activation/publication response for
+bounded passive reads, preserving the original HTTP interval. The JavaScript
+observation decoder previously required that original HTTP duration fit inside
+each subsequent bridge read. A fast retained read therefore failed with
+InvalidResponse even when its actual queue was valid. The decoder now validates
+an ordered original interval of at most 1.5 seconds and receipt age of at most
+15 seconds. It maps the original midpoint using the bridge midpoint, subtracts
+receipt age, and carries both intervals into uncertainty. Observation freshness
+retains receipt age. Future/backward clocks and negative local anchors fail;
+track, occurrence, queue and host identities remain the actual returned values.
+
+Feature tests: `tests/connect-observation.test.mjs` includes fast retained reads,
+original timing/queue preservation, expiration, backward native samples and
+negative local anchors. `npm test` passed architecture checks, TypeScript and
+671 cases across 32 files (`/tmp/jam-queue-projection-library.log`). Mobile's
+matching Kotlin decoder and dedicated JVM regressions are recorded separately.
+
+This is a source reproduction and fix of the receipt contract mismatch, not a
+claim that the emulator's queue panel or a second Spotify account is verified.
+The owning session must test the integrated build without repeated searches.

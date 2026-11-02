@@ -3,7 +3,7 @@ import { IntegrationFailureCode } from '../../contracts/network';
 import { IntegrationFailure } from '../network/IntegrationFailure';
 
 export const ConnectObservationPolicy = Object.freeze({ zero: 0, firstIdentifier: 1, maximumIdentifierCharacters: 2048,
-  maximumTracks: 2000, maximumRoundTripMilliseconds: 1500, midpointDivisor: 2, nativeClockPrecisionMilliseconds: 1,
+  maximumTracks: 2000, maximumRoundTripMilliseconds: 1500, maximumReceiptAgeMilliseconds: 15000, midpointDivisor: 2, nativeClockPrecisionMilliseconds: 1,
   ordinaryPlaybackSpeed: 1, stringType: 'string', objectType: 'object', booleanType: 'boolean',
   spotifyUriPrefix: 'spotify:', metadataUriPrefix: 'spotify:meta:', delimiterUri: 'spotify:delimiter',
   trackPattern: /^spotify:track:([A-Za-z0-9]{22})$/, mediaPattern: /^spotify:(track|episode):[A-Za-z0-9]{22}$/,
@@ -48,8 +48,14 @@ export function decodeSpotifyConnectObservation(value: unknown, boundary: Spotif
   const nativeStart = natural(reading.requestStartedNativeMonotonicMilliseconds);
   const nativeEnd = natural(reading.requestCompletedNativeMonotonicMilliseconds);
   const nativeSample = natural(response.sampledNativeMonotonicMilliseconds);
-  if (nativeEnd < nativeStart || nativeSample < nativeEnd
-    || nativeEnd - nativeStart > after - before + ConnectObservationPolicy.nativeClockPrecisionMilliseconds) return invalid();
+  if (nativeEnd < nativeStart || nativeSample < nativeEnd) return invalid();
+  const nativeDuration = nativeEnd - nativeStart;
+  const receiptAge = nativeSample - nativeEnd;
+  if (nativeDuration > ConnectObservationPolicy.maximumRoundTripMilliseconds
+    || receiptAge > ConnectObservationPolicy.maximumReceiptAgeMilliseconds) throw new IntegrationFailure(IntegrationFailureCode.Deadline);
+  const roundTrip = after - before;
+  const anchor = before + roundTrip / ConnectObservationPolicy.midpointDivisor - receiptAge - nativeDuration / ConnectObservationPolicy.midpointDivisor;
+  if (anchor < ConnectObservationPolicy.zero) return invalid();
   const cluster = object(reading.cluster);
   if (text(cluster.activeDeviceIdentifier) !== boundary.hostDeviceIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Superseded);
   const state = object(cluster.playback); const currentTrack = track(state.track);
@@ -64,13 +70,12 @@ export function decodeSpotifyConnectObservation(value: unknown, boundary: Spotif
   const elapsed = playing ? serverTime - timestamp : ConnectObservationPolicy.zero;
   const estimatedPosition = position + elapsed;
   if (!Number.isSafeInteger(estimatedPosition)) return invalid();
-  const roundTrip = after - before;
-  const uncertainty = roundTrip / ConnectObservationPolicy.midpointDivisor + ConnectObservationPolicy.nativeClockPrecisionMilliseconds;
+  const uncertainty = (roundTrip + nativeDuration) / ConnectObservationPolicy.midpointDivisor + ConnectObservationPolicy.nativeClockPrecisionMilliseconds;
   return Object.freeze({ generation: boundary.generation, hostDeviceIdentifier: boundary.hostDeviceIdentifier,
     queueRevision: text(state.queueRevision), currentTrack, nextTracks: tracks(state.nextTracks), previousTracks: tracks(state.previousTracks), buffering,
     playback: Object.freeze({ spotifyTrackIdentifier: text(matchedTrack[ConnectObservationPolicy.firstIdentifier]),
       occurrenceIdentifier: currentTrack.occurrenceIdentifier, buffering,
       positionMilliseconds: Math.min(duration, estimatedPosition), durationMilliseconds: duration, playing,
-      anchorMonotonicMilliseconds: before + roundTrip / ConnectObservationPolicy.midpointDivisor,
-      observedMonotonicMilliseconds: after, uncertaintyMilliseconds: uncertainty, stateChangedAtUnixMilliseconds: timestamp }) });
+      anchorMonotonicMilliseconds: anchor,
+      observedMonotonicMilliseconds: after - receiptAge, uncertaintyMilliseconds: uncertainty, stateChangedAtUnixMilliseconds: timestamp }) });
 }

@@ -26,9 +26,9 @@ function failure(code) { return value => value instanceof library.IntegrationFai
 function decode(value = response(), scope = boundary()) { return library.decodeSpotifyConnectObservation(value, scope); }
 test(Fixture.names.timing, () => {
   const value = decode(); assert.equal(value.playback.positionMilliseconds, Fixture.sourcePosition + Fixture.sourceElapsed);
-  assert.equal(value.playback.anchorMonotonicMilliseconds, Fixture.sent + (Fixture.received - Fixture.sent) / Fixture.two);
-  assert.equal(value.playback.observedMonotonicMilliseconds, Fixture.received);
-  assert.equal(value.playback.uncertaintyMilliseconds, (Fixture.received - Fixture.sent) / Fixture.two + Fixture.one);
+  assert.equal(value.playback.anchorMonotonicMilliseconds, Fixture.sent + (Fixture.received - Fixture.sent) / Fixture.two - (Fixture.nativeSample - Fixture.nativeEnd) - (Fixture.nativeEnd - Fixture.nativeStart) / Fixture.two);
+  assert.equal(value.playback.observedMonotonicMilliseconds, Fixture.received - (Fixture.nativeSample - Fixture.nativeEnd));
+  assert.equal(value.playback.uncertaintyMilliseconds, (Fixture.received - Fixture.sent + Fixture.nativeEnd - Fixture.nativeStart) / Fixture.two + Fixture.one);
   assert.equal(value.playback.stateChangedAtUnixMilliseconds, Fixture.epoch);
   const ended = response(); ended.reading.cluster.serverAtMilliseconds += Fixture.duration;
   assert.equal(decode(ended).playback.positionMilliseconds, Fixture.duration);
@@ -90,4 +90,30 @@ test(MarkerFixture.name, () => {
   const observed = decode(value); assert.equal(observed.playback.playing, true);
   assert.equal(observed.nextTracks[Fixture.zero].uri, MarkerFixture.metadata);
   assert.equal(observed.nextTracks[Fixture.one].uri, MarkerFixture.delimiter);
+});
+
+const RetainedFixture = Object.freeze({ receiptAge: 400, quickReadMilliseconds: 1,
+  name: 'Retained publication reads preserve original timing and age despite a fast bridge response',
+  expiredName: 'Expired publication receipts and backward native clocks cannot become fresh queue observations',
+  negativeName: 'A retained receipt cannot anchor before the local monotonic clock origin' });
+test(RetainedFixture.name, () => {
+  const value = response(); value.sampledNativeMonotonicMilliseconds = Fixture.nativeEnd + RetainedFixture.receiptAge;
+  const scope = boundary({ receivedMonotonicMilliseconds: Fixture.sent + RetainedFixture.quickReadMilliseconds });
+  const sample = decode(value, scope);
+  assert.equal(sample.playback.anchorMonotonicMilliseconds, Fixture.sent + RetainedFixture.quickReadMilliseconds / Fixture.two
+    - RetainedFixture.receiptAge - (Fixture.nativeEnd - Fixture.nativeStart) / Fixture.two);
+  assert.equal(sample.playback.observedMonotonicMilliseconds, scope.receivedMonotonicMilliseconds - RetainedFixture.receiptAge);
+  assert.equal(sample.playback.uncertaintyMilliseconds, (RetainedFixture.quickReadMilliseconds + Fixture.nativeEnd - Fixture.nativeStart) / Fixture.two + Fixture.one);
+  assert.equal(sample.currentTrack.occurrenceIdentifier, Fixture.occurrence);
+  assert.equal(sample.queueRevision, Fixture.revision);
+});
+test(RetainedFixture.expiredName, () => {
+  const expired = response(); expired.sampledNativeMonotonicMilliseconds = Fixture.nativeEnd + library.ConnectObservationPolicy.maximumReceiptAgeMilliseconds + Fixture.one;
+  assert.throws(() => decode(expired), failure(library.IntegrationFailureCode.Deadline));
+  const backward = response(); backward.sampledNativeMonotonicMilliseconds = Fixture.nativeEnd - Fixture.one;
+  assert.throws(() => decode(backward), failure(library.IntegrationFailureCode.InvalidResponse));
+});
+test(RetainedFixture.negativeName, () => {
+  const value = response(); value.sampledNativeMonotonicMilliseconds = Fixture.nativeEnd + Fixture.sent + Fixture.received;
+  assert.throws(() => decode(value), failure(library.IntegrationFailureCode.InvalidResponse));
 });
