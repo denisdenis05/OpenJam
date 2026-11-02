@@ -167,3 +167,6 @@ occurrences, partial and unresolved future preservation, actual receipt checking
 exact-revision echo suppression, cancellation, disposal and recovery after a
 failed current match. `CONTROLLABLE_QUEUE_PROGRESS.md` records adapter obligations
 and live integration limits.
+
+Complete queue replacement with pending future matches, and retained mappings for
+surviving occurrences: `tests/controllable-queue.test.mjs` complete-source cases.

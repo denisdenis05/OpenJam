@@ -108,3 +108,26 @@ test(Names.priority, async () => { const current = fixture(); const mapped = [];
   current.state.map = async value => { mapped.push(value.occurrenceIdentifier); return value; };
   const result = await synchronize(current); assert.equal(mapped[Fixture.firstPosition], Fixture.occurrence);
   assert.equal(result.snapshot.entries[Fixture.firstPosition].occurrenceIdentifier, Fixture.future); current.coordinator.dispose(); });
+
+const CompleteSourceCase = 'A complete replacement queue never retains removed Spotify occurrences merely because a future track is unmapped';
+test(CompleteSourceCase, async () => {
+  const current = fixture();
+  current.local.state.snapshot = { ...snapshot([entry(), entry(Fixture.future)]), complete: true };
+  current.spotify.state.snapshot = snapshot([entry(), entry(Fixture.repeated)]);
+  current.state.map = async value => value.occurrenceIdentifier === Fixture.future ? null : value;
+  const result = await synchronize(current);
+  assert.equal(result.snapshot.entries.some(value => value.occurrenceIdentifier === Fixture.repeated), false);
+  assert.deepEqual(result.unresolvedOccurrenceIdentifiers, [Fixture.future]);
+  current.coordinator.dispose();
+});
+const RetainedFutureCase = 'A complete queue retains existing mappings for an unresolved occurrence that remains in the actual source';
+test(RetainedFutureCase, async () => {
+  const current = fixture();
+  current.local.state.snapshot = { ...snapshot([entry(), entry(Fixture.future)]), complete: true };
+  current.spotify.state.snapshot = snapshot([entry(), entry(Fixture.future)]);
+  current.state.map = async value => value.occurrenceIdentifier === Fixture.future ? null : value;
+  const result = await synchronize(current);
+  assert.equal(result.snapshot.entries.some(value => value.occurrenceIdentifier === Fixture.future), true);
+  assert.equal(result.applied, false);
+  current.coordinator.dispose();
+});

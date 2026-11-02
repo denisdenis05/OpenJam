@@ -1,3 +1,14 @@
+# Complete queue replacement and current matching recovery — 2026-11-02
+
+The package now accepts injected controllable local/Spotify queues with actual
+occurrences, scoped revisions and acknowledged writes. The complete-source
+refinement removes old destination entries when a new full source queue contains
+unmapped future recordings. Partial observations retain known future entries.
+Current matching starts first and each synchronization has a fresh cancellable
+intent; previous failures cannot latch later songs. 738 library cases pass.
+Mobile owns the native queue ports, incoming commands and live acceptance.
+See CONTROLLABLE_QUEUE_PROGRESS.md and its feature mapping.
+
 # Equivalent recording candidates across releases — 2026-11-02
 
 The ranker now chooses its existing deterministic identifier representative when

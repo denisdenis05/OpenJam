@@ -36,3 +36,14 @@ priority and failure recovery. `npm run build` and all 18 dedicated tests pass. 
 checks, TypeScript compilation and all 736 tests (zero failures).
 Live queue equality, participant additions and playback transitions remain device
 gates owned by the integration session.
+
+## Complete queue replacement refinement
+
+An explicitly complete source contains the full queue membership even when some
+entries still lack destination mappings. Unmapped entries already present by the
+same occurrence retain their known destination mapping. Other old destination
+occurrences are removed. Partial sources and legacy unspecified completeness
+retain conservative preservation. This prevents a replacement album/playlist
+from keeping unrelated old Spotify entries merely because one future match is
+pending. Two dedicated cases in controllable-queue.test.mjs cover replacement and
+same-occurrence mapping retention. Full npm test passed 738 cases; no live calls.

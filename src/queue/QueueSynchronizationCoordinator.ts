@@ -53,7 +53,7 @@ export class QueueSynchronizationCoordinator {
         const resolved = resolvedEntries.get(entry.occurrenceIdentifier);
         if (resolved) entries.push(resolved);
       }
-      if (source.complete === false || unresolved.length > QueueSynchronizationPolicy.emptyCount) {
+      if (source.complete === false || source.complete !== true && unresolved.length > QueueSynchronizationPolicy.emptyCount) {
         for (const entry of target.entries) {
           if (!entries.some(candidate => candidate.occurrenceIdentifier === entry.occurrenceIdentifier)) entries.push(entry);
         }
