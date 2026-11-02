@@ -1,3 +1,31 @@
+# Equivalent recording candidates across releases — 2026-11-02
+
+The ranker now chooses its existing deterministic identifier representative when
+all competitors inside the selection margin independently qualify and share the
+same normalized full title, complete recording artist set, version and present,
+exact candidate duration. Different release titles alone do not make equivalent
+recordings ambiguous. Known normalized recording-code sets must agree pairwise;
+missing codes cannot bridge conflicting known codes. All candidates remain in
+the result. The default matching policy is now `recording-evidence-v2` so saved
+confirmations from the previous matching policy require revalidation.
+
+Different durations, including a one millisecond difference inside the normal
+source tolerance, remain distinct. Missing duration, conflicting or partially
+overlapping codes, unavailable candidates, release-only artist credits and source
+version contradictions cannot be absorbed into an equivalent group. The ordinary
+single-candidate and selection-margin behavior remains covered by the existing
+catalog tests.
+
+Verification: `npm test` passed architecture checks, TypeScript compilation and
+668 cases across 32 test files. `node tests/catalog-equivalent-recordings.test.mjs`
+passed all 12 dedicated regression cases. FEATURES.md maps these cases.
+
+The owning mobile session observed native Partner search success and an ambiguous
+match with three acceptable candidates before this change. That observation does
+not establish exact recording equivalence. This chapter made no live Spotify
+requests, changed no native session and built no APK. Actual candidate equivalence
+and app-led hosting still require the mobile session's measured device check.
+
 # Authoritative follower queue projection — 2026-10-31
 
 Connect playback samples now carry the actual bounded upcoming occurrence queue.

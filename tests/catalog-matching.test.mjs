@@ -11,7 +11,7 @@ const Names = Object.freeze({
   version: 'Live and remix suffixes prevent an automatic studio match',
   unicode: 'Unicode accents and punctuation normalize without losing artist identity',
   multipleArtists: 'Artist order is irrelevant but missing collaborators prevent an automatic match',
-  duplicates: 'Equally supported different identifiers remain ambiguous',
+  duplicates: 'Equally supported different durations remain ambiguous within tolerance',
   duplicateIdentifier: 'Repeated identifiers do not create false ambiguity',
   unavailable: 'Unavailable Spotify tracks are not selected',
   unrelated: 'A shared artist without title or code evidence is not found',
@@ -91,7 +91,7 @@ test(Names.multipleArtists, () => {
 test(Names.duplicates, () => {
   const source = song({ durationMilliseconds: Values.durationMilliseconds });
   const result = new library.CandidateRanker().rank(source, [spotifySong({ durationMilliseconds: Values.durationMilliseconds }),
-    spotifySong({ identifier: Values.otherSpotifyIdentifier, durationMilliseconds: Values.durationMilliseconds })]);
+    spotifySong({ identifier: Values.otherSpotifyIdentifier, durationMilliseconds: Values.boundaryDurationMilliseconds })]);
   assert.equal(result.status, library.MatchStatus.Ambiguous);
 });
 

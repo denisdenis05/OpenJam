@@ -53,6 +53,7 @@
 | Durable login encoding/configuration, restoration, account validation, refresh rotation, transient profile recovery, explicit logout vs disposal, canceled/stale writes, serialized account leases and sanitized storage errors | `tests/saved-login.test.mjs` |
 | Source-standard enforcement and negative fixtures | `tests/architecture.test.mjs` |
 | Minimal schema, duration/codes, version conflicts, Unicode, artist sets, ambiguity, duplicate candidates, availability and bounded ranking | `tests/catalog-matching.test.mjs` |
+| Deterministic equivalent-release recording selection, complete normalized identity, exact candidate durations, pairwise code compatibility and fail-closed variant/availability/credit boundaries | `tests/catalog-equivalent-recordings.test.mjs` |
 | Both translation directions, confirmation, invalidation, market isolation, many-to-one identity, missing sources, typed failures and cancellation | `tests/catalog-matching.test.mjs` |
 | Queryable three-field provider, bounded/copying behavior and input validation | `tests/catalog-providers.test.mjs` |
 | MusicBrainz escaping, metadata decoding, identifiers, missing entries and public-service interval validation | `tests/catalog-providers.test.mjs` |

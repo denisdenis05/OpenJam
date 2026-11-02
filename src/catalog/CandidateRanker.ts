@@ -5,7 +5,7 @@ import { IntegrationFailure } from '../network/IntegrationFailure';
 import { artistIdentity, copySong, normalizeSongText, versionIdentity } from './SongIdentity';
 
 export const DefaultMatchingPolicy: MatchingPolicy = Object.freeze({
-  version: 'recording-evidence-v1', maximumCandidates: 20,
+  version: 'recording-evidence-v2', maximumCandidates: 20,
   durationToleranceMilliseconds: 2000, minimumSelectionMargin: 10,
 });
 
@@ -38,14 +38,31 @@ export class CandidateRanker {
     }
     candidates.sort((left, right) => right.score - left.score || this.compareIdentifiers(left.song.identifier, right.song.identifier));
     const first = candidates[RankingBounds.firstPosition];
-    const second = candidates[RankingBounds.secondPosition];
-    const margin = first && second ? first.score - second.score : Number.POSITIVE_INFINITY;
-    const selected = first?.acceptable && margin >= this.policy.minimumSelectionMargin ? first.song : null;
+    const selected = first?.acceptable && this.hasSelectionMargin(first, candidates) ? first.song : null;
     const status = selected ? MatchStatus.Matched : candidates.some(candidate =>
       candidate.evidence.includes(MatchEvidence.Artist) && (candidate.evidence.includes(MatchEvidence.Title)
         || candidate.evidence.includes(MatchEvidence.RecordingCode)))
       ? MatchStatus.Ambiguous : MatchStatus.NotFound;
     return Object.freeze({ status, candidates: Object.freeze(candidates), selected, failure: null });
+  }
+
+  private hasSelectionMargin<Song extends CatalogSong>(first: MatchCandidate<Song>, candidates: readonly MatchCandidate<Song>[]): boolean {
+    const competitors = candidates.slice(RankingBounds.secondPosition)
+      .filter(candidate => first.score - candidate.score < this.policy.minimumSelectionMargin);
+    return competitors.every(candidate => candidate.acceptable
+      && this.areEquivalentRecordings(first.song, candidate.song)
+      && competitors.every(other => this.areEquivalentRecordings(candidate.song, other.song)));
+  }
+
+  private areEquivalentRecordings(left: CatalogSong, right: CatalogSong): boolean {
+    if (left.durationMilliseconds === undefined || right.durationMilliseconds === undefined
+        || left.durationMilliseconds !== right.durationMilliseconds
+        || normalizeSongText(left.title) !== normalizeSongText(right.title)
+        || artistIdentity(left) !== artistIdentity(right) || versionIdentity(left) !== versionIdentity(right)) return false;
+    const leftCodes = [...new Set((left.recordingCodes ?? []).map(normalizeSongText))].sort();
+    const rightCodes = [...new Set((right.recordingCodes ?? []).map(normalizeSongText))].sort();
+    return leftCodes.length === RankingBounds.emptyRecordingCodeCount || rightCodes.length === RankingBounds.emptyRecordingCodeCount
+      || JSON.stringify(leftCodes) === JSON.stringify(rightCodes);
   }
 
   private score<Song extends CatalogSong>(source: CatalogSong, song: Song): MatchCandidate<Song> {

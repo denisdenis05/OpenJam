@@ -95,8 +95,15 @@ platform enforcement still needs device validation.
 The matcher is deterministic and independent of networking. It normalizes text,
 compares artist sets and known version suffixes, and considers duration/codes.
 Live/remix/version and recording-code contradictions prevent automatic selection.
-Insufficient evidence or closely ranked candidates remain ambiguous. It does
-not fingerprint audio or guarantee exact recording identity from metadata.
+Insufficient evidence or closely ranked distinct candidates remain ambiguous.
+An acceptable leading candidate may share its selection margin with equivalent
+recordings from other releases: normalized full title, complete artist set and
+version must agree, and candidate durations must be present and exactly equal.
+Every close competitor must independently be acceptable. Known recording-code
+sets must agree pairwise; absent codes cannot bridge contradictory known codes.
+The existing identifier order chooses a stable representative while retaining
+all candidates. This does not fingerprint audio or guarantee exact recording
+identity from metadata.
 
 Confirmed associations are distinct from unconfirmed search results. Both
 directions validate relevant metadata fingerprints rather than inverting a
