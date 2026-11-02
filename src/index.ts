@@ -60,3 +60,5 @@ export * from '../contracts/sharedStateReconciliation';
 export * from './connect/SpotifyConnectSharedStateVerifier';
 export * from '../contracts/connectSearch';
 export * from './connect/SpotifyConnectSearchValues';
+export * from '../contracts/controllableQueue';
+export * from './queue/QueueSynchronizationCoordinator';

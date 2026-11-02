@@ -1018,3 +1018,14 @@ boundaries. The prior different-expanded-credit case now verifies exact-proof
 selection. `npm test` passed architecture checks, TypeScript and 718 cases;
 `/tmp/jam-import-group-tests.log` records this run. No live Spotify, emulator,
 APK or cross-account result is established by these source tests.
+
+# Controllable queue coordination — 2026-11-02
+
+Added exported app-owned async queue ports, bidirectional current-first mapping,
+source/destination CAS fences, duplicate occurrence preservation and exact receipt
+origin suppression. Partial/unresolved future observations retain known entries;
+failed current mappings retain the working queue. Each fresh synchronization
+cancels earlier matching and can recover after errors. Optional runtime injection
+and lifetime disposal are implemented. The package imports no app/player code.
+`CONTROLLABLE_QUEUE_PROGRESS.md` records the 18 dedicated passing tests, adapter
+obligations and remaining actual integration/device gates.

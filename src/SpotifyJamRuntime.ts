@@ -1,3 +1,5 @@
+import type { ControllableQueueDependencies } from '../contracts/controllableQueue';
+import { QueueSynchronizationCoordinator } from './queue/QueueSynchronizationCoordinator';
 import type { SpotifyConnectSearchPort } from '../contracts/connectSearch';
 import type { JamSharedStateVerifier } from '../contracts/sharedStateReconciliation';
 import type { SpotifyConnectMetadataPort } from '../contracts/connectMetadata';
@@ -32,6 +34,7 @@ import { samePlaybackIdentity } from './playback/SharedPlaybackTiming';
 
 export interface SpotifyJamDependencies {
   readonly accountIdentifier: string;
+  readonly controllableQueues?: ControllableQueueDependencies;
   readonly connectSearch?: SpotifyConnectSearchPort;
   readonly connectMetadata?: SpotifyConnectMetadataPort;
   readonly sharedStateVerifier?: JamSharedStateVerifier;
@@ -62,6 +65,7 @@ export interface SpotifyJamDependencies {
 
 export class SpotifyJamRuntime {
   readonly sessions: JamSessionClient;
+  readonly queueSynchronization: QueueSynchronizationCoordinator | null;
   readonly recordingQueue: RecordingQueueCoordinator;
   readonly hostedQueue: HostedQueueObserver;
   readonly membership: JamMembershipObserver;
@@ -74,6 +78,8 @@ export class SpotifyJamRuntime {
   private readonly guestObservationVerifier: JamGuestObservationVerifier | undefined;
 
   constructor(dependencies: SpotifyJamDependencies) {
+    const queues = dependencies.controllableQueues;
+    this.queueSynchronization = queues ? new QueueSynchronizationCoordinator(queues.local, queues.spotify, queues.mapper, queues.operationIdentifiers) : null;
     this.accountIdentifier = dependencies.accountIdentifier;
     this.guestObservationVerifier = dependencies.guestObservationVerifier;
     this.recordings = dependencies.recordings;
@@ -172,6 +178,7 @@ export class SpotifyJamRuntime {
   }
 
   dispose(): void {
+    this.queueSynchronization?.dispose();
     this.membership.dispose();
     this.hostedQueue.dispose();
     this.recordingQueue.dispose();

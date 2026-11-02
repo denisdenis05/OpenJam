@@ -170,3 +170,17 @@ The native crate has no audio/player dependency and does not activate playback.
 Provider/store selection is account-owned; failure to decode a native session
 cannot silently switch identity through a saved OAuth grant. LIBRESPOT_AUTH.md
 records native build details, protocol boundaries and live admission gaps.
+
+## Application-owned controllable queue
+
+`ControllableQueuePort` is an injected asynchronous read/CAS-write boundary.
+The package carries real queue occurrences, current selection and account/Jam
+scope; it imports no application implementation. `QueueSynchronizationCoordinator`
+uses an injected mapper and explicit directional triggers, rejects stale source
+or destination revisions and unresolved current selections, preserves known
+future entries for incomplete projections, and suppresses only the exact queue
+receipt it published. Every new trigger cancels old matching, including after a
+failed selection. The transport retains shared rate limit cooldown separately.
+The runtime optionally composes this coordinator through `controllableQueues`.
+Mobile owns native source subscriptions, actual mutation authority, compare-and-
+set enforcement and player receipts. Unbound ports do not imply queue sync works.

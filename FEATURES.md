@@ -158,3 +158,12 @@ country/role gating, retained ownership and cancel/navigation: mobile
 quiet zone, input/matrix bounds, stale completion/share retirement and accessibility:
 mobile `tools/spotify-jam-qr.test.tsx`. Native host/follower feature maps are in
 mobile CATALOG_HOSTING_PROGRESS.md and SHARED_CONTROL_PROGRESS.md.
+
+## Injected controllable queues
+
+`tests/controllable-queue.test.mjs` covers application-owned async queue ports,
+current-first bidirectional mapping, CAS scope/revision fences, repeated recording
+occurrences, partial and unresolved future preservation, actual receipt checking,
+exact-revision echo suppression, cancellation, disposal and recovery after a
+failed current match. `CONTROLLABLE_QUEUE_PROGRESS.md` records adapter obligations
+and live integration limits.
