@@ -1,3 +1,25 @@
+# Commit authorization restored — 2026-11-03
+
+The user authorized commits again at the current time. The earlier no-commit
+restriction below describes the implementation period and is superseded. New
+commits use the actual current author and committer time, without backdating.
+The completed matching and independent preparation chapter retains its source
+verification below; live full queue parity remains open.
+
+# Independent read-only recording preparation — 2026-11-03
+
+RecordingQueueCoordinator now allows a connected account to find Spotify recordings
+without a loaded Jam. Previously that state incorrectly returned Unauthorized.
+Preparation captures the account and absent session; Jam arrival or account change
+retires pending and ready selections. Queue submission still requires the existing
+ready, active and authorized host/guest session checks before confirmation or writes.
+Eight dedicated regression cases cover independent preparation, denied submission,
+missing account, Jam arrival, account replacement, unchanged observations, cancellation
+and disposal. `npm test` passed architecture checks, TypeScript and 783 cases
+(`/tmp/jam-independent-matching-sdk-tests.log`). Mobile adds explicit no-Jam guidance
+and a screen regression. This source result does not establish live matching or queue
+parity. User override: no commits.
+
 # Complete queue replacement and current matching recovery — 2026-11-02
 
 The package now accepts injected controllable local/Spotify queues with actual
@@ -1053,3 +1075,14 @@ active through explicit release-level fixtures. All 751 library tests pass,
 including 13 dedicated contained-credit cases and 47 expanded/import cases.
 CONTAINED_ARTIST_MATCHING_PROGRESS.md records fixtures and integration limits;
 no live Spotify/device result is claimed by this source chapter.
+
+# Import proof across equivalent local recordings — 2026-11-03
+
+Uncommitted by user request. Forward and reverse translation can reuse exact
+import proof across different actual local recording identifiers only after the
+strict ranker verifies source/local-record equivalence and ordinary imported
+candidate guards also pass. No alias guessing, arbitrary overlap or fabricated
+recording identities are introduced. Extra lookups are bounded, deduplicated and
+cancellation/account-lifetime fenced. All 775 source tests pass, including 24 new
+cases; existing foreign-ID and importer lifetime cases remain intact. See
+TRANSITIVE_IMPORT_MATCHING_PROGRESS.md. No live request or device result is claimed.

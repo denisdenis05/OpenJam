@@ -39,6 +39,115 @@ function fixture() {
 async function prepare(current) { await current.coordinator.prepare(Values.recordingIdentifier, Values.market, signal()); }
 function enqueue(current) { return current.coordinator.enqueue(Fixture.identifier, Fixture.request, signal()); }
 
+const IndependentMatchingNames = Object.freeze({
+  preparation: 'Connected accounts can prepare a read-only recording match without a Jam',
+  submission: 'A match prepared without a Jam cannot confirm or enqueue a recording',
+  unauthorized: 'Missing account authorization rejects independent catalog preparation',
+  arrival: 'Jam arrival retires pending and completed independent recording matches',
+  account: 'Account replacement retires an independent match and discards late results',
+  unchanged: 'Unchanged account observations preserve independent recording matching',
+  cancellation: 'Canceled independent matching cannot publish a late catalog result',
+  disposal: 'Disposal retires independent matching and releases session observation',
+});
+function independentFixture() {
+  const current = fixture();
+  current.state.snapshot = { ...current.state.snapshot, session: null };
+  return current;
+}
+test(IndependentMatchingNames.preparation, async () => {
+  const current = independentFixture();
+  await prepare(current);
+  assert.equal(current.coordinator.getSnapshot().status, library.RecordingQueueStatus.Ready);
+  assert.equal(current.calls.translated, Fixture.oneCall);
+  assert.equal(current.calls.confirmed, Fixture.initialCalls);
+  assert.equal(current.calls.queued, Fixture.initialCalls);
+  current.coordinator.dispose();
+});
+test(IndependentMatchingNames.submission, async () => {
+  const current = independentFixture();
+  await prepare(current);
+  assert.equal(await enqueue(current), false);
+  assert.equal(current.coordinator.getSnapshot().failure, library.IntegrationFailureCode.Forbidden);
+  assert.equal(current.calls.confirmed, Fixture.initialCalls);
+  assert.equal(current.calls.queued, Fixture.initialCalls);
+  current.coordinator.dispose();
+});
+test(IndependentMatchingNames.unauthorized, async () => {
+  const current = independentFixture();
+  current.state.snapshot.accountIdentifier = null;
+  await prepare(current);
+  assert.equal(current.coordinator.getSnapshot().failure, library.IntegrationFailureCode.Unauthorized);
+  assert.equal(current.calls.translated, Fixture.initialCalls);
+  current.coordinator.dispose();
+});
+test(IndependentMatchingNames.arrival, async () => {
+  for (const pendingMatch of [true, false]) {
+    const current = independentFixture();
+    const pending = deferred();
+    if (pendingMatch) current.state.translate = () => pending.promise;
+    const preparing = prepare(current);
+    if (!pendingMatch) await preparing;
+    current.change({ ...current.state.snapshot, session: { identifier: Values.sessionIdentifier,
+      active: true, ownedByCurrentAccount: true, participants: [], hostDeviceIdentifier: Fixture.host } });
+    await preparing;
+    pending.resolve(match());
+    await flushMicrotasks();
+    assert.equal(current.coordinator.getSnapshot().status, library.RecordingQueueStatus.Idle);
+    assert.equal(await enqueue(current), false);
+    assert.equal(current.calls.confirmed, Fixture.initialCalls);
+    assert.equal(current.calls.queued, Fixture.initialCalls);
+    current.coordinator.dispose();
+  }
+});
+test(IndependentMatchingNames.account, async () => {
+  const current = independentFixture();
+  const pending = deferred();
+  current.state.translate = () => pending.promise;
+  const preparing = prepare(current);
+  current.change({ ...current.state.snapshot, accountIdentifier: Fixture.replacement });
+  await preparing;
+  pending.resolve(match());
+  await flushMicrotasks();
+  assert.equal(current.coordinator.getSnapshot().status, library.RecordingQueueStatus.Idle);
+  current.coordinator.dispose();
+});
+test(IndependentMatchingNames.unchanged, async () => {
+  const current = independentFixture();
+  const pending = deferred();
+  current.state.translate = () => pending.promise;
+  const preparing = prepare(current);
+  current.change({ ...current.state.snapshot });
+  pending.resolve(match());
+  await preparing;
+  assert.equal(current.coordinator.getSnapshot().status, library.RecordingQueueStatus.Ready);
+  current.coordinator.dispose();
+});
+test(IndependentMatchingNames.cancellation, async () => {
+  const current = independentFixture();
+  const pending = deferred();
+  const cancellation = new AbortController();
+  current.state.translate = () => pending.promise;
+  const preparing = current.coordinator.prepare(Values.recordingIdentifier, Values.market, cancellation.signal);
+  cancellation.abort();
+  await preparing;
+  pending.resolve(match());
+  await flushMicrotasks();
+  assert.equal(current.coordinator.getSnapshot().failure, library.IntegrationFailureCode.Canceled);
+  current.coordinator.dispose();
+});
+test(IndependentMatchingNames.disposal, async () => {
+  const current = independentFixture();
+  const pending = deferred();
+  current.state.translate = () => pending.promise;
+  const preparing = prepare(current);
+  current.coordinator.dispose();
+  await preparing;
+  pending.resolve(match());
+  await flushMicrotasks();
+  assert.equal(current.listeners.size, Fixture.initialCalls);
+  assert.equal(current.coordinator.getSnapshot().status, library.RecordingQueueStatus.Idle);
+});
+
 test(Names.matching, async () => { const current = fixture(); await prepare(current);
   assert.equal(current.coordinator.getSnapshot().status, library.RecordingQueueStatus.Ready);
   assert.equal(current.calls.translated, Fixture.oneCall); assert.equal(current.calls.confirmed, Fixture.initialCalls);

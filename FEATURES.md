@@ -1,6 +1,7 @@
 # Features and dedicated tests
 
 | Functionality | Dedicated tests |
+| Read-only recording preparation without a loaded Jam, missing-account rejection, no-Jam write denial, session arrival/account replacement fences, cancellation and disposal | `tests/recording-queue.test.mjs`; Mobile `tools/spotify-recording-screen.test.tsx` |
 | --- | --- |
 | Actual import preview fallback in both directions, exact database identity, featured-title normalization and expanded credits, missing/different duration support, base-title/code/availability safeguards, same-recording import grouping across credit expansions, strict success bypass, malformed/foreign/duplicate responses and cancellation | `tests/catalog-expanded-credits.test.mjs` |
 | Retained native host receipts preserve original HTTP timing, age and real queue identity; expired/backward clocks fail | `tests/connect-observation.test.mjs`; Mobile `SpotifyConnectObservationDecoderTest` |
@@ -180,3 +181,13 @@ release grouping and actual v3 association invalidation. Existing import fallbac
 fixtures in `tests/catalog-expanded-credits.test.mjs` explicitly use release-level
 provenance to preserve cancellation, malformed response and account lifetime cases.
 `CONTAINED_ARTIST_MATCHING_PROGRESS.md` records policy v4 and live acceptance gaps.
+
+## Import corroboration across equivalent local identifiers
+
+`tests/catalog-import-equivalence.test.mjs` covers actual imported recording
+lookups, strict equivalence in both directions, source/candidate/imported-record
+code/availability/release guards, unrelated metadata rejection, deduplicated bounded
+lookups, malformed identities, cancellation, runtime disposal, strict skip and
+same-ID fast paths. Duplicate candidate identifiers cannot borrow later metadata
+proof. `TRANSITIVE_IMPORT_MATCHING_PROGRESS.md` records the uncommitted source
+chapter and live integration limits.

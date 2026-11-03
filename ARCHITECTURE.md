@@ -112,15 +112,22 @@ guarantee recording identity from metadata.
 
 An optional `RecordingImportMatcher` reuses the application's real read-only
 playlist import preview after strict matching fails. Forward translation submits
-the actual bounded Spotify candidates and accepts only an exact import mapping
-to the source recording's database identifier. Reverse translation submits the
-actual Spotify source and looks up exact mapped recording identifiers, including
-records omitted by strict candidate search. Import responses must contain unique
+the actual bounded Spotify candidates. Exact mappings to the source recording's
+database identifier retain their fast path. A different mapped local identifier
+requires an actual lookup and strict recording equivalence with the captured
+source, plus the ordinary imported title/shared-artist/code/availability checks
+against the Spotify candidate. Reverse translation submits the actual Spotify
+source and looks up exact mapped recording identifiers, including records omitted
+by strict candidate search. Existing searched recording candidates can share that
+import evidence only after strict equivalence with the actual mapped recording;
+no identifier or catalog song is fabricated. Duplicate searched identifiers retain
+the first metadata instance when corroborating import evidence. Import responses must contain unique
 Spotify identifiers from the supplied batch; malformed, foreign or stale canceled
 results fail. Strict successful matches never call this service.
 
 Import evidence is not a stored confirmation or sufficient recording evidence by
-itself. The ranker additionally requires equal normalized titles after the same
+itself. Additional local lookups are deduplicated within the bounded candidate
+batch and fenced by cancellation and runtime account lifetime. The ranker additionally requires equal normalized titles after the same
 bracketed `feat`/`ft` removal used by the server importer and an exact shared
 artist credit. This path does not require duration or a separate version comparison:
 missing or differing duration does not defeat an exact importer mapping. Version

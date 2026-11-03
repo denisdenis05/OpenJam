@@ -13,9 +13,9 @@ const SelectionPolicy = Object.freeze({ maximumIdentifierCharacters: 512, market
 
 interface SelectionSessionIdentity {
   readonly accountIdentifier: string | null;
-  readonly sessionIdentifier: string;
+  readonly sessionIdentifier: string | undefined;
   readonly hostDeviceIdentifier: string | undefined;
-  readonly ownedByCurrentAccount: boolean;
+  readonly ownedByCurrentAccount: boolean | undefined;
 }
 
 export class RecordingQueueCoordinator {
@@ -49,10 +49,10 @@ export class RecordingQueueCoordinator {
       if (!recordingIdentifier.trim() || recordingIdentifier.length > SelectionPolicy.maximumIdentifierCharacters
         || !SelectionPolicy.marketPattern.test(market)) throw new IntegrationFailure(IntegrationFailureCode.InvalidInput);
       const session = this.sessions.getSnapshot();
-      if (!session.accountIdentifier || !session.session) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
+      if (!session.accountIdentifier) throw new IntegrationFailure(IntegrationFailureCode.Unauthorized);
       this.expectedSession = Object.freeze({ accountIdentifier: session.accountIdentifier,
-        sessionIdentifier: session.session.identifier, hostDeviceIdentifier: session.session.hostDeviceIdentifier,
-        ownedByCurrentAccount: session.session.ownedByCurrentAccount });
+        sessionIdentifier: session.session?.identifier, hostDeviceIdentifier: session.session?.hostDeviceIdentifier,
+        ownedByCurrentAccount: session.session?.ownedByCurrentAccount });
       this.publish({ ...EmptySnapshot, recordingIdentifier, market, status: RecordingQueueStatus.Matching });
       this.assertCurrent(lifetime);
       checkCancellation(scope.signal);
