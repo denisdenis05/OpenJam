@@ -1040,3 +1040,16 @@ cancels earlier matching and can recover after errors. Optional runtime injectio
 and lifetime disposal are implemented. The package imports no app/player code.
 `CONTROLLABLE_QUEUE_PROGRESS.md` records the 18 dedicated passing tests, adapter
 obligations and remaining actual integration/device gates.
+
+# Canonical recording artist credits — 2026-11-03
+
+Strict matching now accepts exact normalized base titles with complete artist
+sets contained in either direction. Equivalent-release grouping uses the same
+pairwise containment, retaining recording-code safety and ambiguity for unrelated
+collaborator combinations. Duration remains optional; meaningful version title
+text and availability/release-credit guards remain intact. Policy v4 invalidates
+older confirmations. Existing importer fallback failure/lifetime tests remain
+active through explicit release-level fixtures. All 751 library tests pass,
+including 13 dedicated contained-credit cases and 47 expanded/import cases.
+CONTAINED_ARTIST_MATCHING_PROGRESS.md records fixtures and integration limits;
+no live Spotify/device result is claimed by this source chapter.

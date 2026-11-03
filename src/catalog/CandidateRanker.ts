@@ -2,10 +2,10 @@ import { ArtistCreditSource, MatchEvidence, MatchStatus } from '../../contracts/
 import type { CatalogSong, MatchCandidate, MatchingPolicy, MatchResult } from '../../contracts/catalog';
 import { IntegrationFailureCode } from '../../contracts/network';
 import { IntegrationFailure } from '../network/IntegrationFailure';
-import { artistIdentity, copySong, hasSharedRecordingArtist, importRecordingTitle, normalizeSongText, versionIdentity } from './SongIdentity';
+import { hasCompatibleRecordingArtists, copySong, hasSharedRecordingArtist, importRecordingTitle, normalizeSongText, versionIdentity } from './SongIdentity';
 
 export const DefaultMatchingPolicy: MatchingPolicy = Object.freeze({
-  version: 'recording-evidence-v3', maximumCandidates: 20,
+  version: 'recording-evidence-v4', maximumCandidates: 20,
   durationToleranceMilliseconds: 2000, minimumSelectionMargin: 10,
 });
 
@@ -64,8 +64,8 @@ export class CandidateRanker {
     const importEquivalent = left.evidence.includes(MatchEvidence.Import) && right.evidence.includes(MatchEvidence.Import)
       && importRecordingTitle(left.song.title) === importRecordingTitle(right.song.title)
       && hasSharedRecordingArtist(left.song, right.song);
-    const strictEquivalent = normalizeSongText(left.song.title) === normalizeSongText(right.song.title)
-      && artistIdentity(left.song) === artistIdentity(right.song);
+    const strictEquivalent = importRecordingTitle(left.song.title) === importRecordingTitle(right.song.title)
+      && hasCompatibleRecordingArtists(left.song, right.song);
     if (!importEquivalent && !strictEquivalent) return false;
     const leftCodes = [...new Set((left.song.recordingCodes ?? []).map(normalizeSongText))].sort();
     const rightCodes = [...new Set((right.song.recordingCodes ?? []).map(normalizeSongText))].sort();
@@ -76,7 +76,8 @@ export class CandidateRanker {
   private score<Song extends CatalogSong>(source: CatalogSong, song: Song, imported: boolean): MatchCandidate<Song> {
     const evidence: MatchEvidence[] = [];
     let score = EvidenceScore.none;
-    const titleMatches = normalizeSongText(source.title) === normalizeSongText(song.title);
+    const sourceTitle = importRecordingTitle(source.title);
+    const titleMatches = Boolean(sourceTitle) && sourceTitle === importRecordingTitle(song.title);
     const versionConflict = versionIdentity(source) !== versionIdentity(song);
     const unavailable = [source, song].some(candidate => AvailableProperty in candidate
       && (candidate as CatalogSong & { playable?: boolean }).playable === false);
@@ -85,7 +86,7 @@ export class CandidateRanker {
       && Math.abs(source.durationMilliseconds - song.durationMilliseconds) <= this.policy.durationToleranceMilliseconds;
     const importedIdentityMatches = imported && importRecordingTitle(source.title) === importRecordingTitle(song.title)
       && hasSharedRecordingArtist(source, song);
-    const artistMatches = artistIdentity(source) === artistIdentity(song) || importedIdentityMatches;
+    const artistMatches = hasCompatibleRecordingArtists(source, song) || importedIdentityMatches;
     if (artistMatches) { evidence.push(MatchEvidence.Artist); score += EvidenceScore.artist; }
     if (durationMatches) { evidence.push(MatchEvidence.Duration); score += EvidenceScore.duration; }
     const recordingCodes = new Set((source.recordingCodes ?? []).map(normalizeSongText));

@@ -13,6 +13,7 @@ const VersionLabel = /\b(live|remix|acoustic|instrumental|radio edit|sped up|slo
 const CapturedSuffixIndex = 1;
 const MinimumDurationMilliseconds = 0;
 const FirstPosition = 0;
+const MinimumArtistCount = 1;
 const ImportedFeaturedArtistAnnotation = /\s*[\[\(]\s*(feat|ft)\.?\s+.*?[\]\)]/gi;
 
 export function normalizeSongText(value: string): string {
@@ -48,6 +49,14 @@ export function importRecordingTitle(title: string): string {
 export function hasSharedRecordingArtist(left: CatalogSong, right: CatalogSong): boolean {
   const leftNames = new Set((left.artistNames?.length ? left.artistNames : [left.author]).map(normalizeSongText));
   return (right.artistNames?.length ? right.artistNames : [right.author]).some(name => leftNames.has(normalizeSongText(name)));
+}
+
+export function hasCompatibleRecordingArtists(left: CatalogSong, right: CatalogSong): boolean {
+  const leftNames = new Set((left.artistNames?.length ? left.artistNames : [left.author]).map(normalizeSongText));
+  const rightNames = new Set((right.artistNames?.length ? right.artistNames : [right.author]).map(normalizeSongText));
+  return leftNames.size >= MinimumArtistCount && rightNames.size >= MinimumArtistCount
+    && !leftNames.has(EmptyText) && !rightNames.has(EmptyText)
+    && ([...leftNames].every(name => rightNames.has(name)) || [...rightNames].every(name => leftNames.has(name)));
 }
 
 export function versionIdentity(song: CatalogSong): string {

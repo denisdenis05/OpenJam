@@ -11,7 +11,7 @@ const Names = Object.freeze({
   reverse: 'Expanded Spotify credits match the known single recording group in reverse',
   normalized: 'Primary artist expansion normalizes spelling and duplicate credits',
   unrelatedArtist: 'Import identity cannot authorize a recording without any shared artist credit',
-  strict: 'Expanded credits remain unconfirmed without exact import evidence',
+  strict: 'Exact recording title and contained artist credits select without import evidence',
   release: 'An exact import identity can corroborate a release artist fallback with title artist and duration guards',
   missingDuration: 'An exact import mapping does not need recording duration',
   differentTitle: 'Expanded artist credits need exact normalized title even with a shared recording code',
@@ -19,7 +19,7 @@ const Names = Object.freeze({
   codeConflict: 'Expanded artist credits preserve recording code conflict rejection',
   unavailable: 'Expanded artist credits preserve unavailable recording rejection',
   version: 'Expanded artist credits preserve version conflict rejection',
-  missingCollaborator: 'A complete multi-artist recording cannot lose collaborators through the expansion rule',
+  missingCollaborator: 'Canonical single artist metadata matches a contained expanded recording credit set',
   recordingExpansion: 'An exact import identity can corroborate different credit set lengths',
   authorConflict: 'Exact artist credit overlap is checked instead of fuzzy author text',
   equivalent: 'Equivalent expanded Spotify recordings retain stable duplicate-release selection',
@@ -65,7 +65,7 @@ test(Names.unrelatedArtist, () => {
 });
 
 test(Names.strict, () => {
-  assert.equal(new library.CandidateRanker().rank(recording(), [expanded()]).selected, null);
+  assert.equal(new library.CandidateRanker().rank(recording(), [expanded()]).status, library.MatchStatus.Matched);
 });
 
 test(Names.release, () => {
@@ -105,7 +105,7 @@ test(Names.version, () => {
 
 test(Names.missingCollaborator, () => {
   assert.equal(new library.CandidateRanker().rank(recording({ artistNames: [Credits.group, Credits.producer] }),
-    [expanded({ artistNames: [Credits.group] })]).selected, null);
+    [expanded({ artistNames: [Credits.group] })]).status, library.MatchStatus.Matched);
 });
 
 test(Names.recordingExpansion, () => {
@@ -168,7 +168,7 @@ const ImportValues = Object.freeze({
 
 function importFixture(matches) {
   const fixture = translatorFixture();
-  fixture.recordingSongs.set(Values.recordingIdentifier, recording());
+  fixture.recordingSongs.set(Values.recordingIdentifier, recording({ artistCreditSource: library.ArtistCreditSource.Release }));
   fixture.spotifySongs.set(Values.spotifyIdentifier, expanded());
   const calls = [];
   const matcher = { match: async (songs, signal) => { calls.push({ songs, signal }); return matches; } };
@@ -210,6 +210,7 @@ test(ImportCases.unrelatedResponse, async () => {
 
 test(ImportCases.strictSkip, async () => {
   const fixture = importFixture([exactImport()]);
+  fixture.recordingSongs.set(Values.recordingIdentifier, recording());
   fixture.spotifySongs.set(Values.spotifyIdentifier, spotifySong({ author: Credits.group, durationMilliseconds: Values.durationMilliseconds }));
   assert.equal((await fixture.translator.toSpotify(Values.recordingIdentifier, Values.market, cancellation().signal)).status, library.MatchStatus.Matched);
   assert.equal(fixture.calls.length, Values.noInvocations);
@@ -267,7 +268,7 @@ function importRuntime(matcher) {
     credentials: { getCredentials: async () => credentials(), renewCredentials: async () => credentials() },
     endpoints: { resolveServiceOrigin: async () => Values.serviceOrigin },
     recordings: { identity: Values.catalogIdentity, namespace: library.RecordingNamespace.Local,
-      lookup: async () => recording(), search: async () => [] },
+      lookup: async () => recording({ artistCreditSource: library.ArtistCreditSource.Release }), search: async () => [] },
     associations: new library.MemoryAssociationStore(), clock: { nowMilliseconds: () => Values.nowMilliseconds },
     recordingImportMatcher: matcher,
     requests: { execute: async () => ({ status: Values.successStatus, body: { tracks: { items: [{
@@ -302,7 +303,7 @@ const RequestedRecording = Object.freeze({ title: 'Raid', featuredTitle: 'Raid (
 
 test(ImportCases.namedTrack, async () => {
   const source = recording({ title: RequestedRecording.title, author: RequestedRecording.group,
-    artistNames: [RequestedRecording.group], durationMilliseconds: undefined });
+    artistNames: [RequestedRecording.group], artistCreditSource: library.ArtistCreditSource.Release, durationMilliseconds: undefined });
   const candidate = expanded({ title: RequestedRecording.featuredTitle,
     artistNames: [RequestedRecording.group, RequestedRecording.producer, RequestedRecording.vocalist, RequestedRecording.featuredArtist],
     durationMilliseconds: undefined });
@@ -376,7 +377,7 @@ test(StrictCases.changedLookupIdentity, async () => {
 
 
 const ImportedReleaseCases = Object.freeze({
-  incompleteProof: 'An expanded competing release without exact import proof remains ambiguous',
+  incompleteProof: 'Contained expanded competing credits do not need additional import proof',
   features: 'Exact imports group different featured annotations and artist credits across releases',
   codes: 'Exact import groups retain pairwise conflicting recording code rejection',
   unrelated: 'An exact import group cannot absorb an unrelated artist candidate',
@@ -394,14 +395,14 @@ function importedRaidCandidates() {
 }
 
 function raidRecording() {
-  return recording({ title: RequestedRecording.title, author: RequestedRecording.group, artistNames: [RequestedRecording.group] });
+  return recording({ title: RequestedRecording.title, author: RequestedRecording.group, artistNames: [RequestedRecording.group], artistCreditSource: library.ArtistCreditSource.Release });
 }
 
 test(ImportedReleaseCases.incompleteProof, () => {
   const result = new library.CandidateRanker().rankWithImportMatches(recording({ artistNames: [Credits.group, Credits.producer] }), [expanded(), expanded({
     identifier: Values.otherSpotifyIdentifier, artistNames: [Credits.group, Credits.producer],
   })], [Values.spotifyIdentifier]);
-  assert.equal(result.status, library.MatchStatus.Ambiguous);
+  assert.equal(result.status, library.MatchStatus.Matched);
 });
 
 test(ImportedReleaseCases.features, () => {

@@ -92,20 +92,23 @@ platform enforcement still needs device validation.
 
 ## Matching
 
-The matcher is deterministic and independent of networking. It normalizes text,
-compares complete artist sets and exact normalized full titles. Duration and
-recording codes add ranking evidence; missing or differing duration does not
-veto selection. Version labels remain meaningful title text, with no separate
-version acceptance gate. Recording-code contradictions and unavailability prevent
-automatic selection. Closely ranked distinct candidates remain ambiguous.
-An acceptable leading candidate may share its selection margin with equivalent
-recordings from other releases: normalized full title and complete artist set
-must agree. Missing or differing duration does not split an equivalent group.
-Every close competitor must independently be acceptable. Known recording-code
-sets must agree pairwise; absent codes cannot bridge contradictory known codes.
-The existing identifier order chooses a stable representative while retaining
-all candidates. This does not fingerprint audio or guarantee exact recording
-identity from metadata.
+The matcher is deterministic and independent of networking. Strict matching
+requires an equal normalized base title after removing only bracketed feat/ft
+artist annotations, plus complete recording artist sets where either known set
+is contained in the other. Artist order, repeated credits and accents normalize;
+arbitrary partial overlap between different multi-artist sets is insufficient.
+Release-only artist fallback still requires actual importer evidence. Duration
+and recording codes add ranking evidence; missing or differing duration does not
+veto selection. Meaningful live/remix/version text remains part of the base title,
+with no separate version acceptance gate. Recording-code contradictions and
+unavailability prevent automatic selection. Closely ranked distinct candidates
+remain ambiguous. Equivalent releases may use the same base title and
+pairwise-contained artist sets; every close competitor must independently qualify.
+Known recording-code sets must agree pairwise, so missing codes cannot bridge
+contradictory known codes. The existing identifier order chooses a stable
+representative while retaining all candidates. Policy `recording-evidence-v4`
+invalidates prior confirmed associations. This does not fingerprint audio or
+guarantee recording identity from metadata.
 
 An optional `RecordingImportMatcher` reuses the application's real read-only
 playlist import preview after strict matching fails. Forward translation submits
@@ -125,7 +128,7 @@ labels outside featured-credit annotations remain part of the base title and
 therefore must match as title text. Recording-code and availability
 contradictions still veto selection. Only this exact database
 mapping can corroborate release-level artist fallback. Other fuzzy suggestions
-and unrelated artists remain unconfirmed. Strict-only equivalent-release grouping still requires complete candidate
+and unrelated artists remain unconfirmed. Strict-only equivalent-release grouping requires pairwise-contained candidate
 artist sets and pairwise recording evidence. When both acceptable candidates
 carry exact import proof to the same captured database recording, their base
 titles and an actual shared artist credit can establish equivalence despite

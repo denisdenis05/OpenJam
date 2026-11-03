@@ -170,3 +170,13 @@ and live integration limits.
 
 Complete queue replacement with pending future matches, and retained mappings for
 surviving occurrences: `tests/controllable-queue.test.mjs` complete-source cases.
+
+## Canonical and expanded recording artists
+
+`tests/catalog-contained-artists.test.mjs` covers the three Madvillainy metadata
+fixtures, exact base titles, complete artist set containment in both directions,
+non-contained overlap rejection, availability/code/release-only guards, equivalent
+release grouping and actual v3 association invalidation. Existing import fallback
+fixtures in `tests/catalog-expanded-credits.test.mjs` explicitly use release-level
+provenance to preserve cancellation, malformed response and account lifetime cases.
+`CONTAINED_ARTIST_MATCHING_PROGRESS.md` records policy v4 and live acceptance gaps.

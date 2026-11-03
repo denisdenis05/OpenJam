@@ -10,7 +10,7 @@ const Names = Object.freeze({
   code: 'Recording codes cannot override different title text',
   version: 'Live and remix suffixes prevent an automatic studio match',
   unicode: 'Unicode accents and punctuation normalize without losing artist identity',
-  multipleArtists: 'Artist order is irrelevant but missing collaborators prevent an automatic match',
+  multipleArtists: 'Artist order is irrelevant and canonical artist subsets match expanded credits',
   duplicates: 'Equivalent title and artist recordings tolerate differing durations',
   duplicateIdentifier: 'Repeated identifiers do not create false ambiguity',
   unavailable: 'Unavailable Spotify tracks are not selected',
@@ -85,7 +85,7 @@ test(Names.multipleArtists, () => {
   const source = song({ artistNames: [Values.artist, Values.otherArtist], durationMilliseconds: Values.durationMilliseconds });
   const candidate = spotifySong({ artistNames: [Values.otherArtist, Values.artist], durationMilliseconds: Values.durationMilliseconds });
   assert.equal(new library.CandidateRanker().rank(source, [candidate]).status, library.MatchStatus.Matched);
-  assert.equal(new library.CandidateRanker().rank(source, [{ ...candidate, artistNames: [Values.artist] }]).selected, null);
+  assert.equal(new library.CandidateRanker().rank(source, [{ ...candidate, artistNames: [Values.artist] }]).status, library.MatchStatus.Matched);
 });
 
 test(Names.duplicates, () => {
